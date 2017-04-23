@@ -157,12 +157,17 @@
   <ItemGroup>
     <None Include="Shaders\depth.frag" />
     <None Include="Shaders\depth.vs" />
+    <None Include="Shaders\text.frag" />
+    <None Include="Shaders\text.vs" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="Textures\brickwall.jpg" />
     <Image Include="Textures\container.jpg" />
     <Image Include="Textures\metal.png" />
     <Image Include="Textures\rock.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Font Include="Fonts\arial.ttf" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

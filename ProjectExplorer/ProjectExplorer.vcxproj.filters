@@ -19,6 +19,9 @@
     <Filter Include="Shaders">
       <UniqueIdentifier>{4b1d4e31-3317-45c4-b86f-20f73548d0d2}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Fonts">
+      <UniqueIdentifier>{77539879-8601-4bca-9974-2623d993fe54}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Main.cpp">
@@ -43,6 +46,12 @@
     <None Include="Shaders\depth.vs">
       <Filter>Shaders</Filter>
     </None>
+    <None Include="Shaders\text.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\text.vs">
+      <Filter>Shaders</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Image Include="Textures\brickwall.jpg">
@@ -57,5 +66,10 @@
     <Image Include="Textures\rock.png">
       <Filter>Textures</Filter>
     </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <Font Include="Fonts\arial.ttf">
+      <Filter>Fonts</Filter>
+    </Font>
   </ItemGroup>
 </Project>
