@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <chrono>
+#include <algorithm>
 
 // GLEW
 #define GLEW_STATIC
@@ -32,7 +33,7 @@
 GLuint screenWidth = 800, screenHeight = 600;
 GLuint floorWidth = 50;
 
-double fps = 0;
+int fps = 0;
 double fpsCounter = 0;
 int fpsCounterLimit = 1000;
 int frames = 0;
@@ -50,26 +51,33 @@ struct Character {
 std::map<GLchar, Character> Characters;
 
 // Player
-GLuint gravityVelocity = 1;
+GLfloat gravityVelocity = -0.05f;
+GLfloat maxPlayerDownVelocity = -0.25;
 
 // Function prototypes
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void Do_Movement();
+void updatePlayerVelocity(GLfloat dt);
 void RenderText(Shader &shader, std::string text, GLfloat x, GLfloat y, GLfloat scale, glm::vec3 color);
 GLuint loadTexture(GLchar* path);
 
 // Camera
-Camera camera(glm::vec3(0.0f, 1.5f, 0.0f));
+Camera camera(glm::vec3(25.0f, 1.5f, 25.0f));
 bool keys[1024];
 GLfloat lastX = 400, lastY = 300;
 bool firstMouse = true;
+
+glm::vec3 playerPos(glm::vec3(25.0f, 25.0f, 25.0f));
 
 GLfloat deltaTime = 0.0f;
 GLfloat lastFrame = 0.0f;
 
 std::vector<glm::vec3> baseBlocks;
+
+std::vector<glm::vec3> heightMapPos;
+std::vector<GLint> heightValue;
 
 GLuint cubeVAO, cubeVBO;
 GLuint textVAO, textVBO;
@@ -222,11 +230,24 @@ int main()
 		-0.5f,  0.5f, -0.5f,  0.0f, 1.0f
 	};
 	
-	for (int i = 0; i < floorWidth; i++)
+	for (int i = 25; i < floorWidth + 25; i++)
 	{
-		for (int j = 0; j < floorWidth; j++)
+		for (int j = 25; j < floorWidth + 25; j++)
 		{
 			baseBlocks.push_back(glm::vec3(i, 0.0, j));
+		}
+	}
+
+	for (int i = 0; i < floorWidth + 50; i++)
+	{
+		for (int j = 0; j < floorWidth + 50; j++)
+		{
+			heightMapPos.push_back(glm::vec3(i, 0.0, j));
+
+			if (j >= 25 && j <= 75)
+				heightValue.push_back(0.0);
+			else
+				heightValue.push_back(-100.0);
 		}
 	}
 	
@@ -269,6 +290,10 @@ int main()
 		// Check and call events
 		glfwPollEvents();
 		Do_Movement();
+
+		camera.Position.y = playerPos.y + 1.5;;
+
+		updatePlayerVelocity(deltaTime);
 
 		// Setup some OpenGL options
 		glEnable(GL_DEPTH_TEST);
@@ -329,6 +354,27 @@ int main()
 
 	glfwTerminate();
 	return 0;
+}
+
+void updatePlayerVelocity(GLfloat dt)
+{
+	GLint heightI = std::find(heightMapPos.begin(), heightMapPos.end(), glm::vec3(floor(playerPos.x), 0.0, floor(playerPos.z))) - heightMapPos.begin();
+
+	if (playerPos.y > heightValue.at(heightI))
+	{
+		if (gravityVelocity > maxPlayerDownVelocity)
+			gravityVelocity -= 0.2 * dt;
+		else
+			gravityVelocity = maxPlayerDownVelocity;
+		
+		playerPos.y += gravityVelocity;
+	}
+	else
+	{
+		playerPos.y = heightValue.at(heightI);
+
+		gravityVelocity = -0.05f;
+	}
 }
 
 void RenderText(Shader &shader, std::string text, GLfloat x, GLfloat y, GLfloat scale, glm::vec3 color)
@@ -416,6 +462,9 @@ void Do_Movement()
 		camera.ProcessKeyboard(LEFT, deltaTime);
 	if (keys[GLFW_KEY_D])
 		camera.ProcessKeyboard(RIGHT, deltaTime);
+
+	playerPos.x = camera.Position.x;
+	playerPos.z = camera.Position.z;
 }
 
 // Is called whenever a key is pressed/released via GLFW
@@ -425,6 +474,8 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 		glfwSetWindowShouldClose(window, GL_TRUE);
 	if (key == GLFW_KEY_F3 && action == GLFW_PRESS)
 		renderInformationText = (renderInformationText) ? false : true;
+	if (key == GLFW_KEY_R && action == GLFW_PRESS)
+		playerPos = glm::vec3(25.0, 25.0, 25.0);
 
 	if (action == GLFW_PRESS)
 		keys[key] = true;
