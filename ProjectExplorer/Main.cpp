@@ -13,6 +13,9 @@
 // GLFW
 #include <c:/opengl/GLFW/glfw3.h>
 
+// IRRKLANG
+#include <c:/opengl/IRRKLANG/irrKlang.h>
+
 // GL includes
 #include "Shader.h"
 #include "Camera.h"
@@ -28,6 +31,10 @@
 
 // Other Libs
 #include <c:/opengl/SOIL/SOIL.h>
+
+using namespace irrklang;
+
+ISoundEngine	  *SoundEngine = createIrrKlangDevice();
 
 // Properties
 GLuint screenWidth = 800, screenHeight = 600;
@@ -182,6 +189,9 @@ int main()
 	// Destroy FreeType once we're finished
 	FT_Done_Face(face);
 	FT_Done_FreeType(ft);
+
+	// Play audio
+	SoundEngine->play2D("Audio/breakout.mp3", GL_TRUE);
 
 #pragma region "object_initialization"
 	// Set the object data (buffers, vertex attributes)
