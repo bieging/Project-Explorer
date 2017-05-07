@@ -19,6 +19,7 @@
 // GL includes
 #include "Shader.h"
 #include "Camera.h"
+#include "Renderer.h"
 
 // GLM Mathemtics
 #include <c:/opengl/glm/glm.hpp>
@@ -69,6 +70,8 @@ void Do_Movement();
 void updatePlayerVelocity(GLfloat dt);
 void RenderText(Shader &shader, std::string text, GLfloat x, GLfloat y, GLfloat scale, glm::vec3 color);
 GLuint loadTexture(GLchar* path);
+void initRenderData();
+void Render(Shader &shader);
 
 // Camera
 Camera camera(glm::vec3(25.0f, 1.5f, 25.0f));
@@ -86,8 +89,12 @@ std::vector<glm::vec3> baseBlocks;
 std::vector<glm::vec3> heightMapPos;
 std::vector<GLint> heightValue;
 
+float ambientStr = 0.5;
+
 GLuint cubeVAO, cubeVBO;
 GLuint textVAO, textVBO;
+
+GLuint cubeTexture;
 
 // The MAIN function, from here we start our application and run our Game loop
 int main()
@@ -121,7 +128,7 @@ int main()
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LESS); // Set to always pass the depth test (same effect as glDisable(GL_DEPTH_TEST))
 
-							// Setup and compile our shaders
+	// Setup and compile our shaders
 	Shader shaderGEO("Shaders/depth.vs", "Shaders/depth.frag");
 
 	// Compile and setup the shader
@@ -195,50 +202,7 @@ int main()
 
 #pragma region "object_initialization"
 	// Set the object data (buffers, vertex attributes)
-	GLfloat cubeVertices[] = {
-		// Positions          // Texture Coords
-		-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
-		0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
-		0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-		0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-		-0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-		-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
-
-		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-		0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-		0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-		0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-		-0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
-		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-
-		-0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-		-0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-		-0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-
-		0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-		0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-		0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-		0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-		0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-		0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-
-		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-		0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
-		0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-		0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-
-		-0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-		0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-		0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-		0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-		-0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
-		-0.5f,  0.5f, -0.5f,  0.0f, 1.0f
-	};
+	
 	
 	for (int i = 25; i < floorWidth + 25; i++)
 	{
@@ -261,17 +225,7 @@ int main()
 		}
 	}
 	
-	// Setup cube VAO
-	glGenVertexArrays(1, &cubeVAO);
-	glGenBuffers(1, &cubeVBO);
-	glBindVertexArray(cubeVAO);
-	glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(cubeVertices), &cubeVertices, GL_STATIC_DRAW);
-	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)0);
-	glEnableVertexAttribArray(1);
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
-	glBindVertexArray(0);
+	
 
 	// Setup text VAO and VBO
 	glGenVertexArrays(1, &textVAO);
@@ -283,9 +237,11 @@ int main()
 	glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), 0);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
+
+	initRenderData();
 	
 	// Load textures
-	GLuint cubeTexture = loadTexture("Textures/rock.png");
+	cubeTexture = loadTexture("Textures/rock.png");
 #pragma endregion
 
 	// Game loop
@@ -301,7 +257,13 @@ int main()
 		glfwPollEvents();
 		Do_Movement();
 
-		camera.Position.y = playerPos.y + 1.5;;
+		GLfloat timeValue = glfwGetTime();
+		GLfloat strength = abs(sin(timeValue / 20));
+
+		if (strength <= 0.1)
+			strength = 0.1;
+
+		camera.Position.y = playerPos.y + 1.5;
 
 		updatePlayerVelocity(deltaTime);
 
@@ -313,23 +275,22 @@ int main()
 		glClearColor(0.1f, 0.2f, 0.1f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+		//GLfloat timeValue = glfwGetTime();
+		//GLfloat strength = abs(sin(timeValue));
+		
 		// Draw objects
 		shaderGEO.Use();
 		glm::mat4 view = camera.GetViewMatrix();
 		glm::mat4 projection = glm::perspective(camera.Zoom, (float)screenWidth / (float)screenHeight, 0.1f, 100.0f);
+		
 		glUniformMatrix4fv(glGetUniformLocation(shaderGEO.Program, "view"), 1, GL_FALSE, glm::value_ptr(view));
 		glUniformMatrix4fv(glGetUniformLocation(shaderGEO.Program, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
-		// Cubes
-		glBindVertexArray(cubeVAO);
-		glBindTexture(GL_TEXTURE_2D, cubeTexture);  // We omit the glActiveTexture part since TEXTURE0 is already the default active texture unit. (sampler used in fragment is set to 0 as well as default)		
-		for (int i = 0; i < baseBlocks.size(); i++)
-		{
-			glm::mat4 model;
-			model = glm::translate(model, baseBlocks.at(i));
-			glUniformMatrix4fv(glGetUniformLocation(shaderGEO.Program, "model"), 1, GL_FALSE, glm::value_ptr(model));
-			glDrawArrays(GL_TRIANGLES, 0, 36);
-		}
-		glBindVertexArray(0);
+
+		GLint ambStr = glGetUniformLocation(shaderGEO.Program, "ambStr");
+
+		glUniform1f(ambStr, strength);
+
+		Render(shaderGEO);
 
 		// Set OpenGL options
 		glEnable(GL_CULL_FACE);
@@ -342,6 +303,7 @@ int main()
 			RenderText(shaderTXT, "Player X: " + std::to_string(camera.Position.x), 25.0f, 550.0f, 0.3f, glm::vec3(1.0, 1.0f, 1.0f));
 			RenderText(shaderTXT, "Player Y: " + std::to_string(camera.Position.y), 25.0f, 530.0f, 0.3f, glm::vec3(1.0, 1.0f, 1.0f));
 			RenderText(shaderTXT, "Player Z: " + std::to_string(camera.Position.z), 25.0f, 510.0f, 0.3f, glm::vec3(1.0, 1.0f, 1.0f));
+			RenderText(shaderTXT, "Ambient Light Strength: " + std::to_string(strength), 25.0f, 490.0f, 0.3f, glm::vec3(1.0, 1.0f, 1.0f));
 		}
 
 		glDisable(GL_BLEND);
@@ -455,8 +417,91 @@ GLuint loadTexture(GLchar* path)
 	glBindTexture(GL_TEXTURE_2D, 0);
 	SOIL_free_image_data(image);
 	return textureID;
-
 }
+
+#pragma region "Render"
+
+void initRenderData()
+{
+	GLfloat cubeVertices[] =
+	{
+		// Positions          // Texture Coords
+		-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+		0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
+		0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+		0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+		-0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
+		-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+
+		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+		0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+		0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+		0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+		-0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
+		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+
+		-0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+		-0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+		-0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+
+		0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+		0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+		0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+		0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+		0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+		0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+
+		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+		0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
+		0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+		0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+
+		-0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
+		0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+		0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+		0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+		-0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
+		-0.5f,  0.5f, -0.5f,  0.0f, 1.0f
+	};
+
+	// Setup cube VAO
+	glGenVertexArrays(1, &cubeVAO);
+	glGenBuffers(1, &cubeVBO);
+
+	glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(cubeVertices), &cubeVertices, GL_STATIC_DRAW);
+
+	glBindVertexArray(cubeVAO);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)0);
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
+	glBindVertexArray(0);
+}
+
+void Render(Shader &shader)
+{
+	// Floor Cubes
+	glBindVertexArray(cubeVAO);
+	glBindTexture(GL_TEXTURE_2D, cubeTexture);  // We omit the glActiveTexture part since TEXTURE0 is already the default active texture unit. (sampler used in fragment is set to 0 as well as default)		
+	
+	for (int i = 0; i < baseBlocks.size(); i++)
+	{
+		glm::mat4 model;
+		model = glm::translate(model, baseBlocks.at(i));
+		glUniformMatrix4fv(glGetUniformLocation(shader.Program, "model"), 1, GL_FALSE, glm::value_ptr(model));
+		glDrawArrays(GL_TRIANGLES, 0, 36);
+	}
+	
+	glBindVertexArray(0);
+}
+
+#pragma endregion
 
 #pragma region "User input"
 
@@ -486,6 +531,20 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 		renderInformationText = (renderInformationText) ? false : true;
 	if (key == GLFW_KEY_R && action == GLFW_PRESS)
 		playerPos = glm::vec3(25.0, 25.0, 25.0);
+	if (key == GLFW_KEY_E && action == GLFW_PRESS)
+	{
+		if (ambientStr >= 1.0)
+			ambientStr = 1.0;
+		else
+			ambientStr += 0.05;
+	}
+	if (key == GLFW_KEY_Q && action == GLFW_PRESS)
+	{
+		if (ambientStr <= 0.1)
+			ambientStr = 0.1;
+		else
+			ambientStr -= 0.05;
+	}
 
 	if (action == GLFW_PRESS)
 		keys[key] = true;
