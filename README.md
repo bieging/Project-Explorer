@@ -1,3 +1,3 @@
 # Project Explorer
 
-Currently working on issue #1
+[Ideas](https://gitlab.com/bieging/ProjectExplorer/wikis/ideas)
