@@ -162,7 +162,11 @@
   </ItemGroup>
   <ItemGroup>
     <Image Include="Textures\brickwall.jpg" />
+    <Image Include="Textures\bw.png" />
     <Image Include="Textures\container.jpg" />
+    <Image Include="Textures\dirt.png" />
+    <Image Include="Textures\grass.jpg" />
+    <Image Include="Textures\grassReal.png" />
     <Image Include="Textures\metal.png" />
     <Image Include="Textures\rock.png" />
   </ItemGroup>

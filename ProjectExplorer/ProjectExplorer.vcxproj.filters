@@ -66,6 +66,18 @@
     <Image Include="Textures\rock.png">
       <Filter>Textures</Filter>
     </Image>
+    <Image Include="Textures\dirt.png">
+      <Filter>Textures</Filter>
+    </Image>
+    <Image Include="Textures\grass.jpg">
+      <Filter>Textures</Filter>
+    </Image>
+    <Image Include="Textures\bw.png">
+      <Filter>Textures</Filter>
+    </Image>
+    <Image Include="Textures\grassReal.png">
+      <Filter>Textures</Filter>
+    </Image>
   </ItemGroup>
   <ItemGroup>
     <Font Include="Fonts\arial.ttf">
