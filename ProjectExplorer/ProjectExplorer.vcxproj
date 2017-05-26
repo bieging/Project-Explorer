@@ -155,6 +155,7 @@
     <ClInclude Include="Shader.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Docs\Issues Annotations.md" />
     <None Include="Shaders\depth.frag" />
     <None Include="Shaders\depth.vs" />
     <None Include="Shaders\text.frag" />

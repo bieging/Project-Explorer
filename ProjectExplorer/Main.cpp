@@ -41,13 +41,36 @@ ISoundEngine	  *SoundEngine = createIrrKlangDevice();
 GLuint screenWidth = 800, screenHeight = 600;
 GLuint floorWidth = 50;
 
+int randomMin = 0;
+int randomMax = 100;
+
 int fps = 0;
 double fpsCounter = 0;
 int fpsCounterLimit = 1000;
 int frames = 0;
 
 bool spacePressed = false;
+bool shiftPressed = false;
+bool spaceReleased = false;
+bool shiftReleased = false;
+bool jumpEnable = true;
+
+int jumpTime = 7;
+int jumpTimeCounter = jumpTime;
+
+bool flyAscend = false;
+bool flyDescend = false;
+
 bool renderInformationText = false;
+
+enum PLAYER_GRAVITY_STATE
+{
+	GRAVITY,
+	FIXED_H_FLY,
+	FREE_FLY
+};
+
+PLAYER_GRAVITY_STATE PGS = GRAVITY;
 
 /// Holds all state information relevant to a character as loaded using FreeType
 struct Character {
@@ -69,11 +92,18 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void Do_Movement();
 void updatePlayerVelocity(GLfloat dt);
+
+void pgsGravity(GLfloat dt);
+void pgsFixedHFly(GLfloat dt);
+void pgsFreeFly(GLfloat dt);
+
 void RenderText(Shader &shader, std::string text, GLfloat x, GLfloat y, GLfloat scale, glm::vec3 color);
 GLuint loadTexture(GLchar* path);
 void initRenderData();
 void initTextRenderData();
-void Render(Shader &shader, GLint textureID, glm::vec3 color);
+void Render(Shader &shader, GLint textureID, glm::vec3 color, std::vector<glm::vec3> blocks);
+
+void initializeWorldVectors();
 
 // Camera
 Camera camera(glm::vec3(25.0f, 1.5f, 25.0f));
@@ -86,7 +116,8 @@ glm::vec3 playerPos(glm::vec3(25.0f, 25.0f, 25.0f));
 GLfloat deltaTime = 0.0f;
 GLfloat lastFrame = 0.0f;
 
-std::vector<glm::vec3> baseBlocks;
+std::vector<glm::vec3> grassBlocks;
+std::vector<glm::vec3> stoneBlocks;
 
 std::vector<glm::vec3> heightMapPos;
 std::vector<GLint> heightValue;
@@ -94,10 +125,10 @@ std::vector<GLint> heightValue;
 GLuint cubeVAO, cubeVBO;
 GLuint textVAO, textVBO;
 
-GLuint rockTexID;
+GLuint stoneTexID;
 GLuint grassTexID;
 
-glm::vec3 rockColor  = glm::vec3(1.0, 1.0, 1.0);
+glm::vec3 stoneColor  = glm::vec3(1.0, 1.0, 1.0);
 glm::vec3 grassColor = glm::vec3(0.2, 0.7, 0.2);
 
 // FreeType
@@ -145,44 +176,21 @@ int main()
 	shaderTXT.Use();
 	glUniformMatrix4fv(glGetUniformLocation(shaderTXT.Program, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
 
-
-
-	
-
 	// Play audio
 	//SoundEngine->play2D("Audio/breakout.mp3", GL_TRUE);
 
 #pragma region "object_initialization"
 	// Set the object data (buffers, vertex attributes)
 	
-	
-	for (int i = 25; i < floorWidth + 25; i++)
-	{
-		for (int j = 25; j < floorWidth + 25; j++)
-		{
-			baseBlocks.push_back(glm::vec3(i, 0.0, j));
-		}
-	}
+	initializeWorldVectors();
 
-	for (int i = 0; i < floorWidth + 50; i++)
-	{
-		for (int j = 0; j < floorWidth + 50; j++)
-		{
-			heightMapPos.push_back(glm::vec3(i, 0.0, j));
-
-			if (j >= 25 && j <= 75)
-				heightValue.push_back(0.0);
-			else
-				heightValue.push_back(-100.0);
-		}
-	}
 	
 	initTextRenderData();
 
 	initRenderData();
 
 	// Load textures
-	rockTexID = loadTexture("Textures/rock.png");
+	stoneTexID = loadTexture("Textures/rock.png");
 	grassTexID  = loadTexture("Textures/grassReal.png");
 #pragma endregion
 
@@ -204,8 +212,6 @@ int main()
 
 		if (strength <= 0.1)
 			strength = 0.1;
-
-		camera.Position.y = playerPos.y + 1.5;
 
 		updatePlayerVelocity(deltaTime);
 
@@ -232,8 +238,9 @@ int main()
 
 		//glUniform1f(ambStr, strength);
 
-		Render(shaderGEO, grassTexID, grassColor);
-
+		Render(shaderGEO, grassTexID, grassColor, grassBlocks);
+		Render(shaderGEO, stoneTexID, stoneColor, stoneBlocks);
+		
 		// Set OpenGL options
 		glEnable(GL_CULL_FACE);
 		glEnable(GL_BLEND);
@@ -274,36 +281,109 @@ int main()
 
 void updatePlayerVelocity(GLfloat dt)
 {
+	switch (PGS)
+	{
+		case GRAVITY:
+			pgsGravity(dt);
+			break;
+		case FIXED_H_FLY:
+			pgsFixedHFly(dt);
+			break;
+		case FREE_FLY:
+			pgsFreeFly(dt);
+			break;
+		default:
+			break;
+	}
+}
+
+void pgsGravity(GLfloat dt)
+{
 	if (spacePressed == false)
 	{
-		GLint heightI = std::find(heightMapPos.begin(), heightMapPos.end(), glm::vec3(floor(playerPos.x), 0.0, floor(playerPos.z))) - heightMapPos.begin();
-
-		if (playerPos.y > heightValue.at(heightI))
+		if (spaceReleased)
 		{
-			if (gravityVelocity < maxGravityVelocity)
-				gravityVelocity += 0.2 * dt;
+			if (gravityVelocity >= 0)
+			{
+				gravityVelocity -= 0.75 * dt;
+				playerPos.y += gravityVelocity;
+			}
 			else
-				gravityVelocity = maxGravityVelocity;
-
-			playerPos.y -= gravityVelocity;
+			{
+				spaceReleased = false;
+				gravityVelocity = 0;
+			}
 		}
 		else
 		{
-			playerPos.y = heightValue.at(heightI);
+			GLint heightI = std::find(heightMapPos.begin(), heightMapPos.end(), glm::vec3(floor(playerPos.x), 0.0, floor(playerPos.z))) - heightMapPos.begin();
 
-			gravityVelocity = 0.05f;
+			if (playerPos.y > heightValue.at(heightI))
+			{
+				if (gravityVelocity < maxGravityVelocity)
+				{
+					gravityVelocity += 0.2 * dt;
+				}
+				else
+				{
+					gravityVelocity = maxGravityVelocity;
+				}
+
+				playerPos.y -= gravityVelocity;
+			}
+			else
+			{
+				playerPos.y = heightValue.at(heightI);
+
+				gravityVelocity = 0.05f;
+
+				jumpEnable = true;
+			}
 		}
 	}
 	else
 	{
 		if (gravityVelocity < maxGravityVelocity)
+		{
 			gravityVelocity += 0.2 * dt;
+		}
 		else
+		{
 			gravityVelocity = maxGravityVelocity;
+		}
 
 		playerPos.y += gravityVelocity;
 
+		jumpTimeCounter -= dt;
+
+		if (jumpTimeCounter <= 0)
+		{
+			spacePressed = false;
+			spaceReleased = true;
+
+			jumpTimeCounter = jumpTime;
+		}
 	}
+
+	camera.Position.y = playerPos.y + 1.5;
+}
+
+void pgsFixedHFly(GLfloat dt)
+{
+	if (flyAscend)
+	{
+		playerPos.y += 2 * dt;
+	}
+	else if (flyDescend)
+	{
+		playerPos.y -= 2 * dt;
+	}
+
+	camera.Position.y = playerPos.y + 1.5;
+}
+
+void pgsFreeFly(GLfloat dt)
+{
 }
 
 // This function loads a texture from file. Note: texture loading functions like these are usually 
@@ -330,6 +410,48 @@ GLuint loadTexture(GLchar* path)
 	SOIL_free_image_data(image);
 	return textureID;
 }
+
+#pragma region Initialization
+
+void initializeWorldVectors()
+{
+	grassBlocks.clear();
+	stoneBlocks.clear();
+	heightMapPos.clear();
+	heightValue.clear();
+
+	for (int i = 25; i < floorWidth + 25; i++)
+	{
+		for (int j = 25; j < floorWidth + 25; j++)
+		{
+			int randNum = randomMin + (rand() % (int)(randomMax - randomMin + 1));
+
+			if (randNum < 50)
+			{
+				grassBlocks.push_back(glm::vec3(i, 0.0, j));
+			}
+			else
+			{
+				stoneBlocks.push_back(glm::vec3(i, 0.0, j));
+			}
+		}
+	}
+
+	for (int i = 0; i < floorWidth + 50; i++)
+	{
+		for (int j = 0; j < floorWidth + 50; j++)
+		{
+			heightMapPos.push_back(glm::vec3(i, 0.0, j));
+
+			if (j >= 25 && j <= 75)
+				heightValue.push_back(0.0);
+			else
+				heightValue.push_back(-100.0);
+		}
+	}
+}
+
+#pragma endregion
 
 #pragma region "Render"
 
@@ -396,7 +518,7 @@ void initRenderData()
 	glBindVertexArray(0);
 }
 
-void Render(Shader &shader, GLint textureID, glm::vec3 color)
+void Render(Shader &shader, GLint textureID, glm::vec3 color, std::vector<glm::vec3> blocks)
 {
 	// Floor Cubes
 	glBindVertexArray(cubeVAO);
@@ -405,10 +527,10 @@ void Render(Shader &shader, GLint textureID, glm::vec3 color)
 	GLint cubesColor = glGetUniformLocation(shader.Program, "inColor");
 	glUniform3f(cubesColor, color.r, color.g, color.b);
 
-	for (int i = 0; i < baseBlocks.size(); i++)
+	for (int i = 0; i < blocks.size(); i++)
 	{
 		glm::mat4 model;
-		model = glm::translate(model, baseBlocks.at(i));
+		model = glm::translate(model, blocks.at(i));
 		glUniformMatrix4fv(glGetUniformLocation(shader.Program, "model"), 1, GL_FALSE, glm::value_ptr(model));
 		glDrawArrays(GL_TRIANGLES, 0, 36);
 	}
@@ -561,14 +683,82 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 	if (key == GLFW_KEY_F3 && action == GLFW_PRESS)
 		renderInformationText = (renderInformationText) ? false : true;
 	if (key == GLFW_KEY_R && action == GLFW_PRESS)
+	{
 		playerPos = glm::vec3(25.0, 25.0, 25.0);
+		initializeWorldVectors();
+	}
+	if (key == GLFW_KEY_T && action == GLFW_PRESS)
+	{
+		switch (PGS)
+		{
+			case GRAVITY:
+				PGS = FIXED_H_FLY;
+				break;
+			case FIXED_H_FLY:
+				PGS = FREE_FLY;
+				break;
+			case FREE_FLY:
+				PGS = GRAVITY;
+				break;
+			default:
+				break;
+		}
+	}
+	
+	if		(key == GLFW_KEY_LEFT_SHIFT && action == GLFW_PRESS  )	shiftPressed = true;
+	else if (key == GLFW_KEY_LEFT_SHIFT && action == GLFW_RELEASE)	shiftPressed = false;
+	
 	if (key == GLFW_KEY_SPACE && action == GLFW_PRESS)
 	{
-		spacePressed = true;
+		switch (PGS)
+		{
+			case GRAVITY:
+				if (jumpEnable)
+				{
+					spacePressed = true;
+					jumpEnable = false;
+				}
+				break;
+
+			case FIXED_H_FLY:
+				if (!shiftPressed)
+				{
+					flyAscend = true;
+					flyDescend = false;
+				}
+				else
+				{
+					flyAscend = false;
+					flyDescend = true;
+				}
+				break;
+
+			case FREE_FLY:
+				break;
+
+			default:
+				break;
+		}
 	}
 	if (key == GLFW_KEY_SPACE && action == GLFW_RELEASE)
 	{
-		spacePressed = false;
+		switch (PGS)
+		{
+			case GRAVITY:
+				spacePressed = false;
+				break;
+
+			case FIXED_H_FLY:
+				flyAscend = false;
+				flyDescend = false;
+				break;
+
+			case FREE_FLY:
+				break;
+
+			default:
+				break;
+		}
 	}
 
 	if (action == GLFW_PRESS)

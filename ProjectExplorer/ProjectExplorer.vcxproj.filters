@@ -22,6 +22,9 @@
     <Filter Include="Fonts">
       <UniqueIdentifier>{77539879-8601-4bca-9974-2623d993fe54}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Docs">
+      <UniqueIdentifier>{11745c76-d74e-486f-817f-d007a0c7e2f2}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Main.cpp">
@@ -51,6 +54,9 @@
     </None>
     <None Include="Shaders\text.vs">
       <Filter>Shaders</Filter>
+    </None>
+    <None Include="Docs\Issues Annotations.md">
+      <Filter>Docs</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>
