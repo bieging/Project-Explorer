@@ -1,0 +1,102 @@
+Project Explorer Future Improvements
+
+Create issues with this sections
+	Game State 1
+		Put limitations on keys callback function  based on current game state
+
+	Text Rendering 1
+		Create function to get the total width of the text to render
+		Create vector of FT_FACE to store the many types of font (standard, italic, bold)
+
+Later
+
+Selfmade Interface 2
+	Create rectangle with text behind
+	Able to change rect color, alpha and text color and alpha
+
+Selfmade Interface 3
+	Create TextBox class
+	The class will have everything needed to render a text
+	Will have a render function, shader, VAO and VBO and stuff
+	Check mouse collision with object
+
+Selfmade Interface 4
+	Create Button class
+	The class will have everything needed to render a text
+	Will have a render function, shader, VAO and VBO and stuff
+	Check mouse collision with objects
+
+Player Movement 1
+	Press key to increase player's lateral speed
+	Limit player's speed when pressing 2 keys at the same time
+
+Game Control 1
+	Press key to toggle between fixed day, fixed night, and day-night cycle
+
+Fly 1
+	Create ascendVelocity. Create a soft start before reaching maximum ascension speed
+
+Fly 2
+	Make FREE_FLY be able to ascend and descend. For this, I must have my camera following the player's position, instead of the contrary
+
+Performance 1
+	Investigate why performance dropped after I added a second type of block
+	Try to use face culling ( Should render only what's visible). Read Face Culling tutorial on https://learnopengl.com/#!Advanced-OpenGL/Face-culling
+
+Code Improvement 1
+	Put key processing code on another place. Probably a ProcessKeys() function. I have an issue with pressing simultaneous keys right now
+
+	In Render function, call RenderGeometry and RenderUI functions
+
+	Clean callback methods
+
+Better Data Storage 1
+	Maintain world block positions on a vector which value is the type of the block to be placed
+	
+Better Data Storage 2 - Needed only after saving map to file
+	Create a compression algorithm that checks if I have repeated blocks of the same type
+		Instead of 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ( Which represents a lot of stone, for example ), do this 11x0, which means that there're 11 stone blocks in sequence.
+		This serves to dramatically reduce the map storage space in the Hard Disk
+		
+Physics 3
+	Make the player slide on a wall in case a block is higher in Y than the player
+		When running towards a wall in an angle, the player still moves a little bit in the direction pointed, but does not cross the wall
+	Check player stopping at higher blocks after jumping
+	
+Improve heightMap 2
+	Create invisible wall on the sides of the world, so that the player can't fall and go somewhere below the heightMap
+	Change heightMap structure from vector to map - Probably will have to build a custom map since the standard doesn't support glm::vec3 type as key
+
+Improve heightMap 3
+	Research online how this is done correctly
+	
+Improve FPS counter 
+	Get some average algorithm
+	Make FPS show decimal units too - Get remaining and divide it
+
+Split camera movement from player movement
+	Right now, the players position is a only copy of the camera position. The idea is to make the player position a different thing from the camera
+	
+Logger
+	Add FPS to log
+	Add all possible failures to the log
+	
+Soundtrack
+	Add better soundtrack
+	Add sound when player is moving
+	Add soung when player jumps
+	Add sound when player interacts with other objects
+	
+Cube Map
+	Must read the tutorial first
+	Create a skybox (Maybe I should only render the background blue .-. )
+	
+Instanced Rendering
+	Render a lot of cubes in only one render call
+	Could be able to draw a lot more cubes
+
+Space Partition Algorithms
+	Used for lighter collision detection
+	
+Reset game state
+	Press key and reset all game variables

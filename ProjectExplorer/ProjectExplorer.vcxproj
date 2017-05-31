@@ -173,6 +173,7 @@
   </ItemGroup>
   <ItemGroup>
     <Font Include="Fonts\arial.ttf" />
+    <Font Include="Fonts\arialbd.ttf" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

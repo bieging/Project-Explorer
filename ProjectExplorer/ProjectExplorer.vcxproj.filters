@@ -89,5 +89,8 @@
     <Font Include="Fonts\arial.ttf">
       <Filter>Fonts</Filter>
     </Font>
+    <Font Include="Fonts\arialbd.ttf">
+      <Filter>Fonts</Filter>
+    </Font>
   </ItemGroup>
 </Project>

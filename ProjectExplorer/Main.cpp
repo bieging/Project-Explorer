@@ -35,33 +35,39 @@
 
 using namespace irrklang;
 
-ISoundEngine	  *SoundEngine = createIrrKlangDevice();
+ISoundEngine *SoundEngine = createIrrKlangDevice();
 
 // Properties
 GLuint screenWidth = 800, screenHeight = 600;
-GLuint floorWidth = 50;
+GLuint mapSideSize = 50;
+GLuint mapBorderSize = 25;
 
 int randomMin = 0;
 int randomMax = 100;
 
+GLint textXSize = 0;
+
 int fps = 0;
 double fpsCounter = 0;
-int fpsCounterLimit = 1000;
+const int fpsCounterLimit = 1000;
 int frames = 0;
 
 bool spacePressed = false;
 bool shiftPressed = false;
 bool spaceReleased = false;
 bool shiftReleased = false;
-bool jumpEnable = true;
 
+bool jumpEnable = true;
 int jumpTime = 7;
 int jumpTimeCounter = jumpTime;
+
+GLfloat runSpeedMultiplier = 2.5f;
 
 bool flyAscend = false;
 bool flyDescend = false;
 
 bool renderInformationText = false;
+bool mouseFlag = false;
 
 enum PLAYER_GRAVITY_STATE
 {
@@ -70,7 +76,15 @@ enum PLAYER_GRAVITY_STATE
 	FREE_FLY
 };
 
+enum GAME_STATE
+{
+	START,
+	MENU,
+	ACTIVE
+};
+
 PLAYER_GRAVITY_STATE PGS = GRAVITY;
+GAME_STATE gs = MENU;
 
 /// Holds all state information relevant to a character as loaded using FreeType
 struct Character {
@@ -81,6 +95,7 @@ struct Character {
 };
 
 std::map<GLchar, Character> Characters;
+std::map<GLchar, Character> CharactersBold;
 
 // Player
 GLfloat gravityVelocity = 0.05f;
@@ -90,6 +105,7 @@ GLfloat maxGravityVelocity = 0.3;
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
+void character_callback(GLFWwindow* window, unsigned int codepoint);
 void Do_Movement();
 void updatePlayerVelocity(GLfloat dt);
 
@@ -101,7 +117,8 @@ void RenderText(Shader &shader, std::string text, GLfloat x, GLfloat y, GLfloat 
 GLuint loadTexture(GLchar* path);
 void initRenderData();
 void initTextRenderData();
-void Render(Shader &shader, GLint textureID, glm::vec3 color, std::vector<glm::vec3> blocks);
+void RawRender(Shader &shader, GLint textureID, glm::vec3 color, std::vector<glm::vec3> blocks);
+void Render();
 
 void initializeWorldVectors();
 
@@ -134,6 +151,18 @@ glm::vec3 grassColor = glm::vec3(0.2, 0.7, 0.2);
 // FreeType
 FT_Library ft;
 FT_Face face;
+FT_Face faceBold;
+
+// Shaders
+Shader shaderGEO;
+Shader shaderTXT;
+
+// Global lighting vars
+GLfloat timeValue;
+GLfloat strength;
+
+// GLFW Window
+GLFWwindow* window;
 
 // The MAIN function, from here we start our application and run our Game loop
 int main()
@@ -145,13 +174,14 @@ int main()
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 	glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
 
-	GLFWwindow* window = glfwCreateWindow(screenWidth, screenHeight, "Depth Testing", nullptr, nullptr); // Windowed
+	window = glfwCreateWindow(screenWidth, screenHeight, "Depth Testing", nullptr, nullptr); // Windowed
 	glfwMakeContextCurrent(window);
 
 	// Set the required callback functions
 	glfwSetKeyCallback(window, key_callback);
 	glfwSetCursorPosCallback(window, mouse_callback);
 	glfwSetScrollCallback(window, scroll_callback);
+	glfwSetCharCallback(window, character_callback);
 
 	// Options
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
@@ -168,11 +198,11 @@ int main()
 	glDepthFunc(GL_LESS); // Set to always pass the depth test (same effect as glDisable(GL_DEPTH_TEST))
 
 	// Setup and compile our shaders
-	Shader shaderGEO("Shaders/depth.vs", "Shaders/depth.frag");
+	shaderGEO.init("Shaders/depth.vs", "Shaders/depth.frag");
+	shaderTXT.init("Shaders/text.vs", "Shaders/text.frag");
 
-	// Compile and setup the shader
-	Shader shaderTXT("Shaders/text.vs", "Shaders/text.frag");
 	glm::mat4 projection = glm::ortho(0.0f, static_cast<GLfloat>(screenWidth), 0.0f, static_cast<GLfloat>(screenHeight));
+	
 	shaderTXT.Use();
 	glUniformMatrix4fv(glGetUniformLocation(shaderTXT.Program, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
 
@@ -184,7 +214,6 @@ int main()
 	
 	initializeWorldVectors();
 
-	
 	initTextRenderData();
 
 	initRenderData();
@@ -207,8 +236,8 @@ int main()
 		glfwPollEvents();
 		Do_Movement();
 
-		GLfloat timeValue = glfwGetTime();
-		GLfloat strength = abs(sin(timeValue / 20));
+		timeValue = glfwGetTime();
+		strength = abs(sin(timeValue / 20));
 
 		if (strength <= 0.1)
 			strength = 0.1;
@@ -222,9 +251,6 @@ int main()
 		// Clear the colorbuffer
 		glClearColor(strength, strength, strength, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-		//GLfloat timeValue = glfwGetTime();
-		//GLfloat strength = abs(sin(timeValue));
 		
 		// Draw objects
 		shaderGEO.Use();
@@ -234,33 +260,8 @@ int main()
 		glUniformMatrix4fv(glGetUniformLocation(shaderGEO.Program, "view"), 1, GL_FALSE, glm::value_ptr(view));
 		glUniformMatrix4fv(glGetUniformLocation(shaderGEO.Program, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
 		glUniform1f(glGetUniformLocation(shaderGEO.Program, "ambStr"), strength);
-		//GLint ambStr = glGetUniformLocation(shaderGEO.Program, "ambStr");
 
-		//glUniform1f(ambStr, strength);
-
-		Render(shaderGEO, grassTexID, grassColor, grassBlocks);
-		Render(shaderGEO, stoneTexID, stoneColor, stoneBlocks);
-		
-		// Set OpenGL options
-		glEnable(GL_CULL_FACE);
-		glEnable(GL_BLEND);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-		if (renderInformationText == true)
-		{
-			//todo - create textColor var
-			RenderText(shaderTXT, "FPS: " + std::to_string(fps), 25.0f, 570.0f, 0.3f, glm::vec3(1.0, 0.0f, 0.0f));
-			RenderText(shaderTXT, "Player X: " + std::to_string(camera.Position.x), 25.0f, 550.0f, 0.3f, glm::vec3(1.0, 0.0f, 0.0f));
-			RenderText(shaderTXT, "Player Y: " + std::to_string(camera.Position.y), 25.0f, 530.0f, 0.3f, glm::vec3(1.0, 0.0f, 0.0f));
-			RenderText(shaderTXT, "Player Z: " + std::to_string(camera.Position.z), 25.0f, 510.0f, 0.3f, glm::vec3(1.0, 0.0f, 0.0f));
-			RenderText(shaderTXT, "Ambient Light Strength: " + std::to_string(strength), 25.0f, 490.0f, 0.3f, glm::vec3(1.0, 0.0f, 0.0f));
-			RenderText(shaderTXT, "Y Velocity: " + std::to_string(gravityVelocity), 25.0f, 470.0f, 0.3f, glm::vec3(1.0, 0.0f, 0.0f));
-		}
-
-		glDisable(GL_BLEND);
-		glDisable(GL_CULL_FACE);
-		// Swap the buffers
-		glfwSwapBuffers(window);
+		Render();
 
 		auto finish = std::chrono::high_resolution_clock::now();
 		fpsCounter += std::chrono::duration_cast<std::chrono::milliseconds>(finish - start).count();
@@ -303,13 +304,16 @@ void pgsGravity(GLfloat dt)
 	{
 		if (spaceReleased)
 		{
+			// Checks if player stopped ascending after releasing space key
 			if (gravityVelocity >= 0)
 			{
-				gravityVelocity -= 0.75 * dt;
+				// This softly stops the player after stops the jump command
+				gravityVelocity -= 0.75f * dt;
 				playerPos.y += gravityVelocity;
 			}
 			else
 			{
+				// Once player stops, let gravity act by setting spaceReleased to false
 				spaceReleased = false;
 				gravityVelocity = 0;
 			}
@@ -333,11 +337,15 @@ void pgsGravity(GLfloat dt)
 			}
 			else
 			{
-				playerPos.y = heightValue.at(heightI);
+				//if (playerPos.y == heightValue.at(heightI))
+				//{
+					playerPos.y = heightValue.at(heightI);
 
-				gravityVelocity = 0.05f;
+					gravityVelocity = 0.05f;
 
-				jumpEnable = true;
+					jumpEnable = true;
+				//}
+
 			}
 		}
 	}
@@ -420,30 +428,30 @@ void initializeWorldVectors()
 	heightMapPos.clear();
 	heightValue.clear();
 
-	for (int i = 25; i < floorWidth + 25; i++)
+	for (int i = 25; i < mapSideSize + mapBorderSize; i++)
 	{
-		for (int j = 25; j < floorWidth + 25; j++)
+		for (int j = 25; j < mapSideSize + mapBorderSize; j++)
 		{
 			int randNum = randomMin + (rand() % (int)(randomMax - randomMin + 1));
 
 			if (randNum < 50)
 			{
-				grassBlocks.push_back(glm::vec3(i, 0.0, j));
+				grassBlocks.push_back(glm::vec3(i + 0.5f, 0.0, j + 0.5f));
 			}
 			else
 			{
-				stoneBlocks.push_back(glm::vec3(i, 0.0, j));
+				stoneBlocks.push_back(glm::vec3(i + 0.5f, 0.0, j + 0.5f));
 			}
 		}
 	}
 
-	for (int i = 0; i < floorWidth + 50; i++)
+	for (int i = 0; i < mapSideSize + ((2 * mapBorderSize) - 1); i++)
 	{
-		for (int j = 0; j < floorWidth + 50; j++)
+		for (int j = 0; j < mapSideSize + (2 * mapBorderSize - 1); j++)
 		{
 			heightMapPos.push_back(glm::vec3(i, 0.0, j));
 
-			if (j >= 25 && j <= 75)
+			if ((j >= 25 && i >= 25) && (j <= 74 && i <= 74))
 				heightValue.push_back(0.0);
 			else
 				heightValue.push_back(-100.0);
@@ -518,8 +526,9 @@ void initRenderData()
 	glBindVertexArray(0);
 }
 
-void Render(Shader &shader, GLint textureID, glm::vec3 color, std::vector<glm::vec3> blocks)
+void RawRender(Shader &shader, GLint textureID, glm::vec3 color, std::vector<glm::vec3> blocks)
 {
+	shader.Use();
 	// Floor Cubes
 	glBindVertexArray(cubeVAO);
 	glBindTexture(GL_TEXTURE_2D, textureID);  // We omit the glActiveTexture part since TEXTURE0 is already the default active texture unit. (sampler used in fragment is set to 0 as well as default)		
@@ -538,6 +547,78 @@ void Render(Shader &shader, GLint textureID, glm::vec3 color, std::vector<glm::v
 	glBindVertexArray(0);
 }
 
+void Render()
+{
+	if (gs == ACTIVE)
+	{
+		RawRender(shaderGEO, grassTexID, grassColor, grassBlocks);
+		RawRender(shaderGEO, stoneTexID, stoneColor, stoneBlocks);
+
+		// Set OpenGL options
+		glEnable(GL_CULL_FACE);
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+		if (renderInformationText == true)
+		{
+			mouseFlag = (lastX > 400) ? false : true;
+
+			//todo - create textColor var
+			if (!mouseFlag)
+			{
+				RenderText(shaderTXT, "FPS: " + std::to_string(fps), 25.0f, 570.0f, 0.3f, glm::vec3(1.0, 0.0f, 0.0f));
+				RenderText(shaderTXT, "Player X: " + std::to_string(camera.Position.x), 25.0f, 550.0f, 0.3f, glm::vec3(1.0, 0.0f, 0.0f));
+				RenderText(shaderTXT, "Player Y: " + std::to_string(camera.Position.y), 25.0f, 530.0f, 0.3f, glm::vec3(1.0, 0.0f, 0.0f));
+				RenderText(shaderTXT, "Player Z: " + std::to_string(camera.Position.z), 25.0f, 510.0f, 0.3f, glm::vec3(1.0, 0.0f, 0.0f));
+				RenderText(shaderTXT, "Ambient Light Strength: " + std::to_string(strength), 25.0f, 490.0f, 0.3f, glm::vec3(1.0, 0.0f, 0.0f));
+				RenderText(shaderTXT, "Y Velocity: " + std::to_string(gravityVelocity), 25.0f, 470.0f, 0.3f, glm::vec3(1.0, 0.0f, 0.0f));
+				RenderText(shaderTXT, "Mouse X: " + std::to_string(lastX), 25.0f, 450.0f, 0.3f, glm::vec3(1.0, 0.0f, 0.0f));
+				RenderText(shaderTXT, "Mouse Y: " + std::to_string(lastY), 25.0f, 430.0f, 0.3f, glm::vec3(1.0, 0.0f, 0.0f));
+			}
+			else
+			{
+				RenderText(shaderTXT, "FPS: " + std::to_string(fps), 25.0f, 570.0f, 0.3f, glm::vec3(1.0, 0.0f, 0.0f));
+				RenderText(shaderTXT, "Player X: " + std::to_string(camera.Position.x), 25.0f, 550.0f, 0.3f, glm::vec3(1.0, 0.0f, 0.0f));
+				RenderText(shaderTXT, "Player Y: " + std::to_string(camera.Position.y), 25.0f, 530.0f, 0.3f, glm::vec3(1.0, 0.0f, 0.0f));
+				RenderText(shaderTXT, "Player Z: " + std::to_string(camera.Position.z), 25.0f, 510.0f, 0.3f, glm::vec3(1.0, 0.0f, 0.0f));
+				RenderText(shaderTXT, "Ambient Light Strength: " + std::to_string(strength), 25.0f, 490.0f, 0.3f, glm::vec3(1.0, 0.0f, 0.0f));
+				RenderText(shaderTXT, "Y Velocity: " + std::to_string(gravityVelocity), 25.0f, 470.0f, 0.3f, glm::vec3(1.0, 0.0f, 0.0f));
+				RenderText(shaderTXT, "Mouse X: " + std::to_string(lastX), 25.0f, 450.0f, 0.3f, glm::vec3(1.0, 0.0f, 0.0f));
+				RenderText(shaderTXT, "Mouse Y: " + std::to_string(lastY), 25.0f, 430.0f, 0.3f, glm::vec3(1.0, 0.0f, 0.0f));
+			}
+		}
+
+		glDisable(GL_BLEND);
+		glDisable(GL_CULL_FACE);
+	}
+	else if (gs == MENU)
+	{
+		RawRender(shaderGEO, grassTexID, grassColor, grassBlocks);
+		RawRender(shaderGEO, stoneTexID, stoneColor, stoneBlocks);
+
+		// Set OpenGL options
+		glEnable(GL_CULL_FACE);
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+		textXSize = 0;
+		RenderText(shaderTXT, "Welcome to Project Explorer", 400.0f - (601.0f / 2.0f), 300.0f, 1.0f, glm::vec3(1.0, 1.0f, 1.0f));
+		std::cout << textXSize << std::endl;
+		textXSize = 0;
+
+		glDisable(GL_BLEND);
+		glDisable(GL_CULL_FACE);
+	}
+	else if (gs == START)
+	{
+		RawRender(shaderGEO, grassTexID, grassColor, grassBlocks);
+		RawRender(shaderGEO, stoneTexID, stoneColor, stoneBlocks);
+	}
+
+	// Swap the buffers
+	glfwSwapBuffers(window);
+}
+
 void initTextRenderData()
 {
 	// All functions return a value different than 0 whenever an error occurred
@@ -546,10 +627,17 @@ void initTextRenderData()
 
 	// Load font as face
 	if (FT_New_Face(ft, "Fonts/arial.ttf", 0, &face))
-		std::cout << "ERROR::FREETYPE: Failed to load font" << std::endl;
+		std::cout << "ERROR::FREETYPE: Failed to load Arial" << std::endl;
+
+	// Load font as face
+	if (FT_New_Face(ft, "Fonts/arialbd.ttf", 0, &faceBold))
+		std::cout << "ERROR::FREETYPE: Failed to load Arial Bold" << std::endl;
 
 	// Set size to load glyphs as
 	FT_Set_Pixel_Sizes(face, 0, 48);
+
+	// Set size to load glyphs as
+	FT_Set_Pixel_Sizes(faceBold, 0, 48);
 
 	// Disable byte-alignment restriction
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
@@ -592,9 +680,48 @@ void initTextRenderData()
 		};
 		Characters.insert(std::pair<GLchar, Character>(c, character));
 	}
+
+	// Load first 128 characters of ASCII set
+	for (GLubyte c = 0; c < 128; c++)
+	{
+		// Load character glyph 
+		if (FT_Load_Char(faceBold, c, FT_LOAD_RENDER))
+		{
+			std::cout << "ERROR::FREETYTPE: Failed to load Glyph" << std::endl;
+			continue;
+		}
+		// Generate texture
+		GLuint texture;
+		glGenTextures(1, &texture);
+		glBindTexture(GL_TEXTURE_2D, texture);
+		glTexImage2D(
+			GL_TEXTURE_2D,
+			0,
+			GL_RED,
+			faceBold->glyph->bitmap.width,
+			faceBold->glyph->bitmap.rows,
+			0,
+			GL_RED,
+			GL_UNSIGNED_BYTE,
+			faceBold->glyph->bitmap.buffer
+		);
+		// Set texture options
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		// Now store character for later use
+		Character character = {
+			texture,
+			glm::ivec2(faceBold->glyph->bitmap.width, faceBold->glyph->bitmap.rows),
+			glm::ivec2(faceBold->glyph->bitmap_left, faceBold->glyph->bitmap_top),
+			faceBold->glyph->advance.x
+		};
+		CharactersBold.insert(std::pair<GLchar, Character>(c, character));
+	}
 	glBindTexture(GL_TEXTURE_2D, 0);
 	// Destroy FreeType once we're finished
-	FT_Done_Face(face);
+	FT_Done_Face(faceBold);
 	FT_Done_FreeType(ft);
 
 	// Setup text VAO and VBO for text rendering
@@ -611,6 +738,15 @@ void initTextRenderData()
 
 void RenderText(Shader &shader, std::string text, GLfloat x, GLfloat y, GLfloat scale, glm::vec3 color)
 {
+	Character ch;
+
+	GLfloat xpos;
+	GLfloat ypos;
+	GLfloat w;
+	GLfloat h;
+
+	textXSize = 0;
+
 	// Activate corresponding render state	
 	shader.Use();
 	glUniform3f(glGetUniformLocation(shader.Program, "textColor"), color.x, color.y, color.z);
@@ -618,16 +754,39 @@ void RenderText(Shader &shader, std::string text, GLfloat x, GLfloat y, GLfloat 
 	glBindVertexArray(textVAO);
 
 	// Iterate through all characters
-	std::string::const_iterator c;
-	for (c = text.begin(); c != text.end(); c++)
+	std::string::const_iterator c = text.begin();
+
+	// Gets position of the first character to later calculate the word's total width
+	if (!mouseFlag)
 	{
-		Character ch = Characters[*c];
+		ch = Characters[*c];
+	}
+	else
+	{
+		ch = CharactersBold[*c];
+	}
 
-		GLfloat xpos = x + ch.Bearing.x * scale;
-		GLfloat ypos = y - (ch.Size.y - ch.Bearing.y) * scale;
+	xpos = x + ch.Bearing.x * scale;
+	textXSize = xpos;
 
-		GLfloat w = ch.Size.x * scale;
-		GLfloat h = ch.Size.y * scale;
+	// Draw text
+	for ( ; c != text.end(); c++ )
+	{
+		if (!mouseFlag)
+		{
+			ch = Characters[*c];
+		}
+		else
+		{
+			ch = CharactersBold[*c];
+		}
+
+		xpos = x + ch.Bearing.x * scale;
+		ypos = y - (ch.Size.y - ch.Bearing.y) * scale;
+
+		w = ch.Size.x * scale;
+		h = ch.Size.y * scale;
+
 		// Update VBO for each character
 		GLfloat vertices[6][4] = {
 			{ xpos,     ypos + h,   0.0, 0.0 },
@@ -650,6 +809,10 @@ void RenderText(Shader &shader, std::string text, GLfloat x, GLfloat y, GLfloat 
 		// Now advance cursors for next glyph (note that advance is number of 1/64 pixels)
 		x += (ch.Advance >> 6) * scale; // Bitshift by 6 to get value in pixels (2^6 = 64 (divide amount of 1/64th pixels by 64 to get amount of pixels))
 	}
+
+	// Calculates final width of the text being rendered
+	textXSize = xpos + w - textXSize;
+
 	glBindVertexArray(0);
 	glBindTexture(GL_TEXTURE_2D, 0);
 }
@@ -663,13 +826,25 @@ void Do_Movement()
 {
 	// Camera controls
 	if (keys[GLFW_KEY_W])
-		camera.ProcessKeyboard(FORWARD, deltaTime);
+	{
+		if (shiftPressed)	camera.ProcessKeyboard(FORWARD, deltaTime * runSpeedMultiplier);
+		else				camera.ProcessKeyboard(FORWARD, deltaTime);
+	}
 	if (keys[GLFW_KEY_S])
-		camera.ProcessKeyboard(BACKWARD, deltaTime);
+	{
+		if (shiftPressed)	camera.ProcessKeyboard(BACKWARD, deltaTime * runSpeedMultiplier);
+		else				camera.ProcessKeyboard(BACKWARD, deltaTime);
+	}
 	if (keys[GLFW_KEY_A])
-		camera.ProcessKeyboard(LEFT, deltaTime);
+	{
+		if (shiftPressed)	camera.ProcessKeyboard(LEFT, deltaTime * runSpeedMultiplier);
+		else				camera.ProcessKeyboard(LEFT, deltaTime);
+	}
 	if (keys[GLFW_KEY_D])
-		camera.ProcessKeyboard(RIGHT, deltaTime);
+	{
+		if (shiftPressed)	camera.ProcessKeyboard(RIGHT, deltaTime * runSpeedMultiplier);
+		else				camera.ProcessKeyboard(RIGHT, deltaTime);
+	}
 
 	playerPos.x = camera.Position.x;
 	playerPos.z = camera.Position.z;
@@ -681,7 +856,18 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, GL_TRUE);
 	if (key == GLFW_KEY_F3 && action == GLFW_PRESS)
+	{
 		renderInformationText = (renderInformationText) ? false : true;
+		// Options
+		if (renderInformationText)
+		{
+			glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+		}
+		else
+		{
+			glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+		}
+	}
 	if (key == GLFW_KEY_R && action == GLFW_PRESS)
 	{
 		playerPos = glm::vec3(25.0, 25.0, 25.0);
@@ -782,12 +968,21 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 	lastX = xpos;
 	lastY = ypos;
 
-	camera.ProcessMouseMovement(xoffset, yoffset);
+	if (!renderInformationText)
+	{
+		camera.ProcessMouseMovement(xoffset, yoffset);
+	}
 }
 
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
 	camera.ProcessMouseScroll(yoffset);
+}
+
+void character_callback(GLFWwindow* window, unsigned int codepoint)
+{
+	//char c = codepoint;
+	//std::cout << c;
 }
 
 #pragma endregion

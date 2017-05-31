@@ -1,0 +1,32 @@
+Console
+	Insert commands and see what's going on
+RenderTextBuffer
+	Temporary text
+	Display game-related messages
+	Create messages with life, color
+	Display messages form oldest to newest, from top to bottom
+Continuous Jump
+	While the player is pressing a certain key, it keeps gaining up velocity
+
+Inventory
+Particles test
+Particles engine ( Enter which geometry for particle, color, alpha, size, lifetime, etc.. )
+Items
+Block types
+Equipment
+Pathfinding for AI
+Good AI techniques
+Crafting
+Combat
+Water
+Quests
+Boat
+Magic
+Archery
+Super Robust Ray-tracing
+
+
+Free flight
+	Press key to move freely across the map
+Key Flight
+	Move up and down by pressing certain keys
