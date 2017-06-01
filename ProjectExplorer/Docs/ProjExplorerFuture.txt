@@ -4,27 +4,35 @@ Create issues with this sections
 	Game State 1
 		Put limitations on keys callback function  based on current game state
 
-	Text Rendering 1
-		Create function to get the total width of the text to render
-		Create vector of FT_FACE to store the many types of font (standard, italic, bold)
-
 Later
+
+World 1
+	Should I store the world in a 2d array, or in a vector
+	To remember - When blocks get a more than 1 height difference, there should be blocks to hide the empty space
 
 Selfmade Interface 2
 	Create rectangle with text behind
 	Able to change rect color, alpha and text color and alpha
 
 Selfmade Interface 3
-	Create TextBox class
-	The class will have everything needed to render a text
-	Will have a render function, shader, VAO and VBO and stuff
+	ok - Create Label class
+	ok - The class will have everything needed to render a text
+	ok - Will have a render function, shader, VAO and VBO and stuff
 	Check mouse collision with object
+	ok - Has position and size parameters
 
 Selfmade Interface 4
 	Create Button class
 	The class will have everything needed to render a text
 	Will have a render function, shader, VAO and VBO and stuff
 	Check mouse collision with objects
+	Has position and size parameters
+
+Selfmade Interface 5
+	Create UIElement class that will be the super class of the Label and Button classes. This will have common features for both label and button
+
+Text Rendering 1
+	Create vector of FT_FACE to store the many types of font (standard, italic, bold)
 
 Player Movement 1
 	Press key to increase player's lateral speed

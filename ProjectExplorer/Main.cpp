@@ -20,6 +20,8 @@
 #include "Shader.h"
 #include "Camera.h"
 #include "Renderer.h"
+#include "Font.h"
+#include "Label.h"
 
 // GLM Mathemtics
 #include <c:/opengl/glm/glm.hpp>
@@ -33,9 +35,13 @@
 // Other Libs
 #include <c:/opengl/SOIL/SOIL.h>
 
+//#define glm::vec3(1.0f, 1.0f, 1.0f) WHITE
+
 using namespace irrklang;
 
 ISoundEngine *SoundEngine = createIrrKlangDevice();
+
+//Font fontArial;
 
 // Properties
 GLuint screenWidth = 800, screenHeight = 600;
@@ -78,24 +84,26 @@ enum PLAYER_GRAVITY_STATE
 
 enum GAME_STATE
 {
+	WELCOME,
 	START,
 	MENU,
-	ACTIVE
+	ACTIVE,
+	INFORMATION
 };
 
 PLAYER_GRAVITY_STATE PGS = GRAVITY;
-GAME_STATE gs = MENU;
+GAME_STATE gs = ACTIVE;
 
 /// Holds all state information relevant to a character as loaded using FreeType
-struct Character {
-	GLuint TextureID;   // ID handle of the glyph texture
-	glm::ivec2 Size;    // Size of glyph
-	glm::ivec2 Bearing;  // Offset from baseline to left/top of glyph
-	GLuint Advance;    // Horizontal offset to advance to next glyph
-};
-
-std::map<GLchar, Character> Characters;
-std::map<GLchar, Character> CharactersBold;
+//struct Character {
+//	GLuint TextureID;   // ID handle of the glyph texture
+//	glm::ivec2 Size;    // Size of glyph
+//	glm::ivec2 Bearing;  // Offset from baseline to left/top of glyph
+//	GLuint Advance;    // Horizontal offset to advance to next glyph
+//};
+//
+//std::map<GLchar, Character> Characters;
+//std::map<GLchar, Character> CharactersBold;
 
 // Player
 GLfloat gravityVelocity = 0.05f;
@@ -113,12 +121,16 @@ void pgsGravity(GLfloat dt);
 void pgsFixedHFly(GLfloat dt);
 void pgsFreeFly(GLfloat dt);
 
-void RenderText(Shader &shader, std::string text, GLfloat x, GLfloat y, GLfloat scale, glm::vec3 color);
+//void RenderText(Shader &shader, std::string text, GLfloat x, GLfloat y, GLfloat scale, glm::vec3 color);
 GLuint loadTexture(GLchar* path);
 void initRenderData();
-void initTextRenderData();
+//void initTextRenderData();
 void RawRender(Shader &shader, GLint textureID, glm::vec3 color, std::vector<glm::vec3> blocks);
 void Render();
+
+//std::tuple<GLfloat, GLfloat> uiTextDimension(std::string text, GLfloat x, GLfloat y, GLfloat scale);
+void uiCollision();
+bool checkUiCollision(std::string text);
 
 void initializeWorldVectors();
 
@@ -148,11 +160,6 @@ GLuint grassTexID;
 glm::vec3 stoneColor  = glm::vec3(1.0, 1.0, 1.0);
 glm::vec3 grassColor = glm::vec3(0.2, 0.7, 0.2);
 
-// FreeType
-FT_Library ft;
-FT_Face face;
-FT_Face faceBold;
-
 // Shaders
 Shader shaderGEO;
 Shader shaderTXT;
@@ -163,6 +170,10 @@ GLfloat strength;
 
 // GLFW Window
 GLFWwindow* window;
+
+// Strings
+std::vector<Label> welcomeLabels;
+//std::vector<std::string> informationStrings;
 
 // The MAIN function, from here we start our application and run our Game loop
 int main()
@@ -214,7 +225,13 @@ int main()
 	
 	initializeWorldVectors();
 
-	initTextRenderData();
+	Font fontArial("Fonts", "arial");
+
+	Label lbPlayerXPosition("Welcome to Project Explorer", 100.0f, 300.0f, 1.0f, fontArial.getCharacterSet(PLAIN));
+
+	welcomeLabels.push_back(lbPlayerXPosition);
+
+	//initTextRenderData();
 
 	initRenderData();
 
@@ -262,6 +279,7 @@ int main()
 		glUniform1f(glGetUniformLocation(shaderGEO.Program, "ambStr"), strength);
 
 		Render();
+		//lbPlayerXPosition.render(shaderTXT, glm::vec3(1.0f, 1.0f, 1.0f));
 
 		auto finish = std::chrono::high_resolution_clock::now();
 		fpsCounter += std::chrono::duration_cast<std::chrono::milliseconds>(finish - start).count();
@@ -559,39 +577,55 @@ void Render()
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-		if (renderInformationText == true)
-		{
-			mouseFlag = (lastX > 400) ? false : true;
+		std::vector<Label>::iterator lbIt = welcomeLabels.begin();
+		GLint i = 0;
 
-			//todo - create textColor var
-			if (!mouseFlag)
-			{
-				RenderText(shaderTXT, "FPS: " + std::to_string(fps), 25.0f, 570.0f, 0.3f, glm::vec3(1.0, 0.0f, 0.0f));
-				RenderText(shaderTXT, "Player X: " + std::to_string(camera.Position.x), 25.0f, 550.0f, 0.3f, glm::vec3(1.0, 0.0f, 0.0f));
-				RenderText(shaderTXT, "Player Y: " + std::to_string(camera.Position.y), 25.0f, 530.0f, 0.3f, glm::vec3(1.0, 0.0f, 0.0f));
-				RenderText(shaderTXT, "Player Z: " + std::to_string(camera.Position.z), 25.0f, 510.0f, 0.3f, glm::vec3(1.0, 0.0f, 0.0f));
-				RenderText(shaderTXT, "Ambient Light Strength: " + std::to_string(strength), 25.0f, 490.0f, 0.3f, glm::vec3(1.0, 0.0f, 0.0f));
-				RenderText(shaderTXT, "Y Velocity: " + std::to_string(gravityVelocity), 25.0f, 470.0f, 0.3f, glm::vec3(1.0, 0.0f, 0.0f));
-				RenderText(shaderTXT, "Mouse X: " + std::to_string(lastX), 25.0f, 450.0f, 0.3f, glm::vec3(1.0, 0.0f, 0.0f));
-				RenderText(shaderTXT, "Mouse Y: " + std::to_string(lastY), 25.0f, 430.0f, 0.3f, glm::vec3(1.0, 0.0f, 0.0f));
-			}
-			else
-			{
-				RenderText(shaderTXT, "FPS: " + std::to_string(fps), 25.0f, 570.0f, 0.3f, glm::vec3(1.0, 0.0f, 0.0f));
-				RenderText(shaderTXT, "Player X: " + std::to_string(camera.Position.x), 25.0f, 550.0f, 0.3f, glm::vec3(1.0, 0.0f, 0.0f));
-				RenderText(shaderTXT, "Player Y: " + std::to_string(camera.Position.y), 25.0f, 530.0f, 0.3f, glm::vec3(1.0, 0.0f, 0.0f));
-				RenderText(shaderTXT, "Player Z: " + std::to_string(camera.Position.z), 25.0f, 510.0f, 0.3f, glm::vec3(1.0, 0.0f, 0.0f));
-				RenderText(shaderTXT, "Ambient Light Strength: " + std::to_string(strength), 25.0f, 490.0f, 0.3f, glm::vec3(1.0, 0.0f, 0.0f));
-				RenderText(shaderTXT, "Y Velocity: " + std::to_string(gravityVelocity), 25.0f, 470.0f, 0.3f, glm::vec3(1.0, 0.0f, 0.0f));
-				RenderText(shaderTXT, "Mouse X: " + std::to_string(lastX), 25.0f, 450.0f, 0.3f, glm::vec3(1.0, 0.0f, 0.0f));
-				RenderText(shaderTXT, "Mouse Y: " + std::to_string(lastY), 25.0f, 430.0f, 0.3f, glm::vec3(1.0, 0.0f, 0.0f));
-			}
+		for (; lbIt < welcomeLabels.end(); lbIt++, i++)
+		{
+			welcomeLabels.at(i).render(shaderTXT, glm::vec3(1.0f, 1.0f, 1.0f));
 		}
 
 		glDisable(GL_BLEND);
 		glDisable(GL_CULL_FACE);
+
+		//for each (Label lb in welcomeLabels)
+		//{
+		//	lb.render(shaderTXT, glm::vec3(1.0f, 1.0f, 1.0f));
+		//}
+
+		//if (renderInformationText == true)
+		//{
+		//	//lbPlayerXPosition.render();
+
+		//	mouseFlag = (lastX > 400) ? false : true;
+
+		//	//todo - create textColor var
+		//	//if (!mouseFlag)
+		//	//{
+		//	//	RenderText(shaderTXT, "FPS: " + std::to_string(fps), 25.0f, 570.0f, 0.3f, glm::vec3(1.0, 0.0f, 0.0f));
+		//	//	RenderText(shaderTXT, "Player X: " + std::to_string(camera.Position.x), 25.0f, 550.0f, 0.3f, glm::vec3(1.0, 0.0f, 0.0f));
+		//	//	RenderText(shaderTXT, "Player Y: " + std::to_string(camera.Position.y), 25.0f, 530.0f, 0.3f, glm::vec3(1.0, 0.0f, 0.0f));
+		//	//	RenderText(shaderTXT, "Player Z: " + std::to_string(camera.Position.z), 25.0f, 510.0f, 0.3f, glm::vec3(1.0, 0.0f, 0.0f));
+		//	//	RenderText(shaderTXT, "Ambient Light Strength: " + std::to_string(strength), 25.0f, 490.0f, 0.3f, glm::vec3(1.0, 0.0f, 0.0f));
+		//	//	RenderText(shaderTXT, "Y Velocity: " + std::to_string(gravityVelocity), 25.0f, 470.0f, 0.3f, glm::vec3(1.0, 0.0f, 0.0f));
+		//	//	RenderText(shaderTXT, "Mouse X: " + std::to_string(lastX), 25.0f, 450.0f, 0.3f, glm::vec3(1.0, 0.0f, 0.0f));
+		//	//	RenderText(shaderTXT, "Mouse Y: " + std::to_string(lastY), 25.0f, 430.0f, 0.3f, glm::vec3(1.0, 0.0f, 0.0f));
+		//	//}
+		//	//else
+		//	//{
+		//	//	RenderText(shaderTXT, "FPS: " + std::to_string(fps), 25.0f, 570.0f, 0.3f, glm::vec3(1.0, 0.0f, 0.0f));
+		//	//	RenderText(shaderTXT, "Player X: " + std::to_string(camera.Position.x), 25.0f, 550.0f, 0.3f, glm::vec3(1.0, 0.0f, 0.0f));
+		//	//	RenderText(shaderTXT, "Player Y: " + std::to_string(camera.Position.y), 25.0f, 530.0f, 0.3f, glm::vec3(1.0, 0.0f, 0.0f));
+		//	//	RenderText(shaderTXT, "Player Z: " + std::to_string(camera.Position.z), 25.0f, 510.0f, 0.3f, glm::vec3(1.0, 0.0f, 0.0f));
+		//	//	RenderText(shaderTXT, "Ambient Light Strength: " + std::to_string(strength), 25.0f, 490.0f, 0.3f, glm::vec3(1.0, 0.0f, 0.0f));
+		//	//	RenderText(shaderTXT, "Y Velocity: " + std::to_string(gravityVelocity), 25.0f, 470.0f, 0.3f, glm::vec3(1.0, 0.0f, 0.0f));
+		//	//	RenderText(shaderTXT, "Mouse X: " + std::to_string(lastX), 25.0f, 450.0f, 0.3f, glm::vec3(1.0, 0.0f, 0.0f));
+		//	//	RenderText(shaderTXT, "Mouse Y: " + std::to_string(lastY), 25.0f, 430.0f, 0.3f, glm::vec3(1.0, 0.0f, 0.0f));
+		//	//}
+		//}
+
 	}
-	else if (gs == MENU)
+	else if (gs == WELCOME)
 	{
 		RawRender(shaderGEO, grassTexID, grassColor, grassBlocks);
 		RawRender(shaderGEO, stoneTexID, stoneColor, stoneBlocks);
@@ -601,10 +635,9 @@ void Render()
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-		textXSize = 0;
-		RenderText(shaderTXT, "Welcome to Project Explorer", 400.0f - (601.0f / 2.0f), 300.0f, 1.0f, glm::vec3(1.0, 1.0f, 1.0f));
-		std::cout << textXSize << std::endl;
-		textXSize = 0;
+		//uiTextDimension
+		// todo - get text dimension and render the text on position based on dimension
+		//RenderText(shaderTXT, "Welcome to Project Explorer", 100.0f, 300.0f, 1.0f, glm::vec3(1.0, 1.0f, 1.0f));
 
 		glDisable(GL_BLEND);
 		glDisable(GL_CULL_FACE);
@@ -619,202 +652,34 @@ void Render()
 	glfwSwapBuffers(window);
 }
 
-void initTextRenderData()
+void uiCollision()
 {
-	// All functions return a value different than 0 whenever an error occurred
-	if (FT_Init_FreeType(&ft))
-		std::cout << "ERROR::FREETYPE: Could not init FreeType Library" << std::endl;
-
-	// Load font as face
-	if (FT_New_Face(ft, "Fonts/arial.ttf", 0, &face))
-		std::cout << "ERROR::FREETYPE: Failed to load Arial" << std::endl;
-
-	// Load font as face
-	if (FT_New_Face(ft, "Fonts/arialbd.ttf", 0, &faceBold))
-		std::cout << "ERROR::FREETYPE: Failed to load Arial Bold" << std::endl;
-
-	// Set size to load glyphs as
-	FT_Set_Pixel_Sizes(face, 0, 48);
-
-	// Set size to load glyphs as
-	FT_Set_Pixel_Sizes(faceBold, 0, 48);
-
-	// Disable byte-alignment restriction
-	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-
-	// Load first 128 characters of ASCII set
-	for (GLubyte c = 0; c < 128; c++)
+	if (gs == WELCOME)
 	{
-		// Load character glyph 
-		if (FT_Load_Char(face, c, FT_LOAD_RENDER))
+		if (checkUiCollision("Welcome to Project Explorer"))
 		{
-			std::cout << "ERROR::FREETYTPE: Failed to load Glyph" << std::endl;
-			continue;
+			std::cout << "True" << std::endl;
 		}
-		// Generate texture
-		GLuint texture;
-		glGenTextures(1, &texture);
-		glBindTexture(GL_TEXTURE_2D, texture);
-		glTexImage2D(
-			GL_TEXTURE_2D,
-			0,
-			GL_RED,
-			face->glyph->bitmap.width,
-			face->glyph->bitmap.rows,
-			0,
-			GL_RED,
-			GL_UNSIGNED_BYTE,
-			face->glyph->bitmap.buffer
-		);
-		// Set texture options
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		// Now store character for later use
-		Character character = {
-			texture,
-			glm::ivec2(face->glyph->bitmap.width, face->glyph->bitmap.rows),
-			glm::ivec2(face->glyph->bitmap_left, face->glyph->bitmap_top),
-			face->glyph->advance.x
-		};
-		Characters.insert(std::pair<GLchar, Character>(c, character));
 	}
-
-	// Load first 128 characters of ASCII set
-	for (GLubyte c = 0; c < 128; c++)
+	else if (gs == INFORMATION)
 	{
-		// Load character glyph 
-		if (FT_Load_Char(faceBold, c, FT_LOAD_RENDER))
-		{
-			std::cout << "ERROR::FREETYTPE: Failed to load Glyph" << std::endl;
-			continue;
-		}
-		// Generate texture
-		GLuint texture;
-		glGenTextures(1, &texture);
-		glBindTexture(GL_TEXTURE_2D, texture);
-		glTexImage2D(
-			GL_TEXTURE_2D,
-			0,
-			GL_RED,
-			faceBold->glyph->bitmap.width,
-			faceBold->glyph->bitmap.rows,
-			0,
-			GL_RED,
-			GL_UNSIGNED_BYTE,
-			faceBold->glyph->bitmap.buffer
-		);
-		// Set texture options
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		// Now store character for later use
-		Character character = {
-			texture,
-			glm::ivec2(faceBold->glyph->bitmap.width, faceBold->glyph->bitmap.rows),
-			glm::ivec2(faceBold->glyph->bitmap_left, faceBold->glyph->bitmap_top),
-			faceBold->glyph->advance.x
-		};
-		CharactersBold.insert(std::pair<GLchar, Character>(c, character));
+		//if (checkUiCollision(text))
 	}
-	glBindTexture(GL_TEXTURE_2D, 0);
-	// Destroy FreeType once we're finished
-	FT_Done_Face(faceBold);
-	FT_Done_FreeType(ft);
-
-	// Setup text VAO and VBO for text rendering
-	glGenVertexArrays(1, &textVAO);
-	glGenBuffers(1, &textVBO);
-	glBindVertexArray(textVAO);
-	glBindBuffer(GL_ARRAY_BUFFER, textVBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * 6 * 4, NULL, GL_DYNAMIC_DRAW);
-	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), 0);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glBindVertexArray(0);
 }
 
-void RenderText(Shader &shader, std::string text, GLfloat x, GLfloat y, GLfloat scale, glm::vec3 color)
+bool checkUiCollision(std::string text)
 {
-	Character ch;
+	//GLfloat width, height;
 
-	GLfloat xpos;
-	GLfloat ypos;
-	GLfloat w;
-	GLfloat h;
+	//std::tie(width, height) = uiTextDimension("Welcome to Project Explorer", 0, 0, 1.0f);
 
-	textXSize = 0;
+	//if (lastX >= 100.0f && lastX <= (100.0f + width) &&
+	//	lastY >= 300.0f && lastY <= (300.0f + height))
+	//{
+	//	return true;
+	//}
 
-	// Activate corresponding render state	
-	shader.Use();
-	glUniform3f(glGetUniformLocation(shader.Program, "textColor"), color.x, color.y, color.z);
-	glActiveTexture(GL_TEXTURE0);
-	glBindVertexArray(textVAO);
-
-	// Iterate through all characters
-	std::string::const_iterator c = text.begin();
-
-	// Gets position of the first character to later calculate the word's total width
-	if (!mouseFlag)
-	{
-		ch = Characters[*c];
-	}
-	else
-	{
-		ch = CharactersBold[*c];
-	}
-
-	xpos = x + ch.Bearing.x * scale;
-	textXSize = xpos;
-
-	// Draw text
-	for ( ; c != text.end(); c++ )
-	{
-		if (!mouseFlag)
-		{
-			ch = Characters[*c];
-		}
-		else
-		{
-			ch = CharactersBold[*c];
-		}
-
-		xpos = x + ch.Bearing.x * scale;
-		ypos = y - (ch.Size.y - ch.Bearing.y) * scale;
-
-		w = ch.Size.x * scale;
-		h = ch.Size.y * scale;
-
-		// Update VBO for each character
-		GLfloat vertices[6][4] = {
-			{ xpos,     ypos + h,   0.0, 0.0 },
-			{ xpos,     ypos,       0.0, 1.0 },
-			{ xpos + w, ypos,       1.0, 1.0 },
-
-			{ xpos,     ypos + h,   0.0, 0.0 },
-			{ xpos + w, ypos,       1.0, 1.0 },
-			{ xpos + w, ypos + h,   1.0, 0.0 }
-		};
-		// Render glyph texture over quad
-		glBindTexture(GL_TEXTURE_2D, ch.TextureID);
-		// Update content of VBO memory
-		glBindBuffer(GL_ARRAY_BUFFER, textVBO);
-		glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices); // Be sure to use glBufferSubData and not glBufferData
-
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
-		// Render quad
-		glDrawArrays(GL_TRIANGLES, 0, 6);
-		// Now advance cursors for next glyph (note that advance is number of 1/64 pixels)
-		x += (ch.Advance >> 6) * scale; // Bitshift by 6 to get value in pixels (2^6 = 64 (divide amount of 1/64th pixels by 64 to get amount of pixels))
-	}
-
-	// Calculates final width of the text being rendered
-	textXSize = xpos + w - textXSize;
-
-	glBindVertexArray(0);
-	glBindTexture(GL_TEXTURE_2D, 0);
+	return false;
 }
 
 #pragma endregion
@@ -968,9 +833,13 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 	lastX = xpos;
 	lastY = ypos;
 
-	if (!renderInformationText)
+	if (gs == ACTIVE)
 	{
 		camera.ProcessMouseMovement(xoffset, yoffset);
+	}
+	else
+	{
+		uiCollision();
 	}
 }
 
