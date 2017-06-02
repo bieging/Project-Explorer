@@ -1,5 +1,10 @@
 #include "Font.h"
 
+Font::Font()
+{
+	this->initialized = false;
+}
+
 Font::Font(std::string dirPath, std::string fontName)
 {
 	bool buildSuccess = true;
@@ -180,6 +185,8 @@ Font::Font(std::string dirPath, std::string fontName)
 	// Destroy FreeType once we're finished
 	FT_Done_Face(faceBold);
 	FT_Done_FreeType(ft);
+
+	this->initialized = true;
 }
 
 Font::~Font()
@@ -188,8 +195,10 @@ Font::~Font()
 
 std::map<GLchar, Character> *  Font::getCharacterSet(int formatting)
 {
-	switch (formatting)
+	if (this->initialized)
 	{
+		switch (formatting)
+		{
 		case 0:
 			return &CharactersPlain;
 			break;
@@ -201,5 +210,10 @@ std::map<GLchar, Character> *  Font::getCharacterSet(int formatting)
 		case 2:
 			return &CharactersItalic;
 			break;
+		}
+	}
+	else
+	{
+		std::cout << "Unable to process operation because object is not initialized" << std::endl;
 	}
 }

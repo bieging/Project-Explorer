@@ -1,10 +1,19 @@
 Project Explorer Future Improvements
 
+Small things
+	Define what to do with other game states (start and the other)
+
 Create issues with this sections
 	Game State 1
 		Put limitations on keys callback function  based on current game state
 
 Later
+
+Increase player camera position as the blocks seem very big now
+
+Chunk and ChunkHandler (Important)
+
+Clean input - Put most things on an treatInput function
 
 World 1
 	Should I store the world in a 2d array, or in a vector
@@ -27,6 +36,9 @@ Selfmade Interface 4
 	Will have a render function, shader, VAO and VBO and stuff
 	Check mouse collision with objects
 	Has position and size parameters
+	Will store a pointer to a function ( Which will be its event )
+		The function will be at main.cpp
+		When check collision is true, call method and pass its parameters
 
 Selfmade Interface 5
 	Create UIElement class that will be the super class of the Label and Button classes. This will have common features for both label and button
@@ -74,6 +86,7 @@ Physics 3
 Improve heightMap 2
 	Create invisible wall on the sides of the world, so that the player can't fall and go somewhere below the heightMap
 	Change heightMap structure from vector to map - Probably will have to build a custom map since the standard doesn't support glm::vec3 type as key
+	Use glm::vec3.y as heightMap value and delete the heightValues vector
 
 Improve heightMap 3
 	Research online how this is done correctly

@@ -22,6 +22,9 @@
 #include "Renderer.h"
 #include "Font.h"
 #include "Label.h"
+#include "PerlinNoise.h"
+#include "ChunkHandler.h"
+#include "BMath.h"
 
 // GLM Mathemtics
 #include <c:/opengl/glm/glm.hpp>
@@ -35,13 +38,11 @@
 // Other Libs
 #include <c:/opengl/SOIL/SOIL.h>
 
-//#define glm::vec3(1.0f, 1.0f, 1.0f) WHITE
-
 using namespace irrklang;
 
 ISoundEngine *SoundEngine = createIrrKlangDevice();
 
-//Font fontArial;
+int aux = 0;
 
 // Properties
 GLuint screenWidth = 800, screenHeight = 600;
@@ -67,12 +68,11 @@ bool jumpEnable = true;
 int jumpTime = 7;
 int jumpTimeCounter = jumpTime;
 
-GLfloat runSpeedMultiplier = 2.5f;
+GLfloat runSpeedMultiplier = 3.0f;
 
 bool flyAscend = false;
 bool flyDescend = false;
 
-bool renderInformationText = false;
 bool mouseFlag = false;
 
 enum PLAYER_GRAVITY_STATE
@@ -92,18 +92,8 @@ enum GAME_STATE
 };
 
 PLAYER_GRAVITY_STATE PGS = GRAVITY;
-GAME_STATE gs = ACTIVE;
-
-/// Holds all state information relevant to a character as loaded using FreeType
-//struct Character {
-//	GLuint TextureID;   // ID handle of the glyph texture
-//	glm::ivec2 Size;    // Size of glyph
-//	glm::ivec2 Bearing;  // Offset from baseline to left/top of glyph
-//	GLuint Advance;    // Horizontal offset to advance to next glyph
-//};
-//
-//std::map<GLchar, Character> Characters;
-//std::map<GLchar, Character> CharactersBold;
+GAME_STATE gs = WELCOME;
+GAME_STATE lastGameState = WELCOME;
 
 // Player
 GLfloat gravityVelocity = 0.05f;
@@ -114,6 +104,10 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void character_callback(GLFWwindow* window, unsigned int codepoint);
+void treatInputs();
+void treatPlayerMovementKeys();
+void treatGameControlKeys();
+void treatStateChangingKeys();
 void Do_Movement();
 void updatePlayerVelocity(GLfloat dt);
 
@@ -130,17 +124,20 @@ void Render();
 
 //std::tuple<GLfloat, GLfloat> uiTextDimension(std::string text, GLfloat x, GLfloat y, GLfloat scale);
 void uiCollision();
-bool checkUiCollision(std::string text);
 
+void initializePerlinNoise();
 void initializeWorldVectors();
+void initializeUI();
 
 // Camera
 Camera camera(glm::vec3(25.0f, 1.5f, 25.0f));
 bool keys[1024];
 GLfloat lastX = 400, lastY = 300;
 bool firstMouse = true;
+bool cursorFree = false;
 
-glm::vec3 playerPos(glm::vec3(25.0f, 25.0f, 25.0f));
+// Y is set to 0.0 because player will automatically get the Y position from the heightMap
+glm::vec3 playerPos(glm::vec3(25.0f, 0.0f, 25.0f));
 
 GLfloat deltaTime = 0.0f;
 GLfloat lastFrame = 0.0f;
@@ -171,9 +168,32 @@ GLfloat strength;
 // GLFW Window
 GLFWwindow* window;
 
-// Strings
-std::vector<Label> welcomeLabels;
-//std::vector<std::string> informationStrings;
+// Fonts
+Font fontArial;
+TextFormatting currentCharacterSet = PLAIN;
+
+// Labels
+std::vector<Label*> welcomeLabels;
+std::vector<Label*> informationLabels;
+std::vector<Label*> menuLabels;
+
+Label lbWelcome;
+
+Label lbFPS;
+Label lbPlayerX;
+Label lbPlayerY;
+Label lbPlayerZ;
+Label lbLightStrength;
+Label lbYVelocity;
+Label lbMouseX;
+Label lbMouseY;
+
+Label lbSave;
+Label lbLoad;
+Label lbExit;
+
+// Perlin Terrain Generator
+PerlinNoise perlin;
 
 // The MAIN function, from here we start our application and run our Game loop
 int main()
@@ -185,7 +205,7 @@ int main()
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 	glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
 
-	window = glfwCreateWindow(screenWidth, screenHeight, "Depth Testing", nullptr, nullptr); // Windowed
+	window = glfwCreateWindow(screenWidth, screenHeight, "Project Explorer", nullptr, nullptr); // Windowed
 	glfwMakeContextCurrent(window);
 
 	// Set the required callback functions
@@ -221,23 +241,25 @@ int main()
 	//SoundEngine->play2D("Audio/breakout.mp3", GL_TRUE);
 
 #pragma region "object_initialization"
-	// Set the object data (buffers, vertex attributes)
+	// Load fonts
+	fontArial = Font("Fonts", "arial");
+
+	// Configure terrain generator
+	initializePerlinNoise();
 	
+	// Create map and heightMap
 	initializeWorldVectors();
 
-	Font fontArial("Fonts", "arial");
-
-	Label lbPlayerXPosition("Welcome to Project Explorer", 100.0f, 300.0f, 1.0f, fontArial.getCharacterSet(PLAIN));
-
-	welcomeLabels.push_back(lbPlayerXPosition);
-
-	//initTextRenderData();
+	// Configure all interface related objects
+	initializeUI();
 
 	initRenderData();
 
 	// Load textures
-	stoneTexID = loadTexture("Textures/rock.png");
-	grassTexID  = loadTexture("Textures/grassReal.png");
+	stoneTexID = loadTexture("Textures/rockWire.png");
+	grassTexID  = loadTexture("Textures/grassRealWire.png");
+
+	std::cin.get();
 #pragma endregion
 
 	// Game loop
@@ -251,7 +273,7 @@ int main()
 
 		// Check and call events
 		glfwPollEvents();
-		Do_Movement();
+		treatInputs();
 
 		timeValue = glfwGetTime();
 		strength = abs(sin(timeValue / 20));
@@ -260,6 +282,9 @@ int main()
 			strength = 0.1;
 
 		updatePlayerVelocity(deltaTime);
+
+		lbLightStrength.setText("Ambient Light Strength: " + std::to_string(strength));
+		lbYVelocity.setText("Y Velocity: " + std::to_string(gravityVelocity));
 
 		// Setup some OpenGL options
 		glEnable(GL_DEPTH_TEST);
@@ -272,14 +297,13 @@ int main()
 		// Draw objects
 		shaderGEO.Use();
 		glm::mat4 view = camera.GetViewMatrix();
-		glm::mat4 projection = glm::perspective(camera.Zoom, (float)screenWidth / (float)screenHeight, 0.1f, 100.0f);
+		glm::mat4 projection = glm::perspective(camera.Zoom, (float)screenWidth / (float)screenHeight, 0.1f, 300.0f);
 		
 		glUniformMatrix4fv(glGetUniformLocation(shaderGEO.Program, "view"), 1, GL_FALSE, glm::value_ptr(view));
 		glUniformMatrix4fv(glGetUniformLocation(shaderGEO.Program, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
 		glUniform1f(glGetUniformLocation(shaderGEO.Program, "ambStr"), strength);
 
 		Render();
-		//lbPlayerXPosition.render(shaderTXT, glm::vec3(1.0f, 1.0f, 1.0f));
 
 		auto finish = std::chrono::high_resolution_clock::now();
 		fpsCounter += std::chrono::duration_cast<std::chrono::milliseconds>(finish - start).count();
@@ -291,6 +315,9 @@ int main()
 
 			fpsCounter -= 1000;
 			frames = 0;
+
+			// Update FPS label with new FPS values
+			lbFPS.setText("FPS: " + std::to_string(fps));
 		}
 	}
 
@@ -391,7 +418,7 @@ void pgsGravity(GLfloat dt)
 		}
 	}
 
-	camera.Position.y = playerPos.y + 1.5;
+	camera.Position.y = playerPos.y + 1.8f;
 }
 
 void pgsFixedHFly(GLfloat dt)
@@ -405,7 +432,7 @@ void pgsFixedHFly(GLfloat dt)
 		playerPos.y -= 2 * dt;
 	}
 
-	camera.Position.y = playerPos.y + 1.5;
+	camera.Position.y = playerPos.y + 1.8f;
 }
 
 void pgsFreeFly(GLfloat dt)
@@ -439,6 +466,20 @@ GLuint loadTexture(GLchar* path)
 
 #pragma region Initialization
 
+void initializePerlinNoise()
+{
+	std::cout << "Please enter a seed number to generate your terrain: " << std::endl;
+	std::cout << "Enter \"n\" to initialize with standard seed" << std::endl;
+	GLuint seed = 0;
+	std::string seedInput = "";
+	std::cin >> seedInput;
+	if (seedInput != "n")
+	{
+		seed = std::stoi(seedInput);
+		perlin = PerlinNoise(seed);
+	}
+}
+
 void initializeWorldVectors()
 {
 	grassBlocks.clear();
@@ -446,35 +487,73 @@ void initializeWorldVectors()
 	heightMapPos.clear();
 	heightValue.clear();
 
-	for (int i = 25; i < mapSideSize + mapBorderSize; i++)
+	for (int i = 0; i < mapSideSize - 1; i++)
 	{
-		for (int j = 25; j < mapSideSize + mapBorderSize; j++)
+		for (int j = 0; j < mapSideSize - 1; j++)
 		{
 			int randNum = randomMin + (rand() % (int)(randomMax - randomMin + 1));
 
+			GLfloat perlinX = bmath::norm(i, 0, 255);
+			GLfloat perlinY = bmath::norm(j, 0, 255);
+
+			GLfloat perlinValue = perlin.noise(perlinX, perlinY, 0.0f);
+
+			GLfloat mappedValue = std::floor(bmath::map(perlinValue, 0.0f, 1.0f, 0.0f, 255.0f));
+
+			heightMapPos.push_back(glm::vec3(i, 0.0, j));
+			heightValue.push_back(mappedValue);
+
 			if (randNum < 50)
 			{
-				grassBlocks.push_back(glm::vec3(i + 0.5f, 0.0, j + 0.5f));
+				grassBlocks.push_back(glm::vec3(i + 0.5f, mappedValue, j + 0.5f));
 			}
 			else
 			{
-				stoneBlocks.push_back(glm::vec3(i + 0.5f, 0.0, j + 0.5f));
+				stoneBlocks.push_back(glm::vec3(i + 0.5f, mappedValue, j + 0.5f));
 			}
 		}
 	}
 
-	for (int i = 0; i < mapSideSize + ((2 * mapBorderSize) - 1); i++)
-	{
-		for (int j = 0; j < mapSideSize + (2 * mapBorderSize - 1); j++)
-		{
-			heightMapPos.push_back(glm::vec3(i, 0.0, j));
+	std::cin.get();
+}
 
-			if ((j >= 25 && i >= 25) && (j <= 74 && i <= 74))
-				heightValue.push_back(0.0);
-			else
-				heightValue.push_back(-100.0);
-		}
-	}
+void initializeUI()
+{
+	// Create Welcome Label
+	lbWelcome = Label("Welcome to Project Explorer", 100.0f, 300.0f, 1.0f, fontArial.getCharacterSet(PLAIN));
+
+	// Add Welcome Labels to their Label vector
+	welcomeLabels.push_back(&lbWelcome);
+
+	// Create Information Labels
+	lbFPS			= Label("FPS: "						+ std::to_string(fps),					25.0f, 570.0f, 0.3f, fontArial.getCharacterSet(PLAIN));
+	lbPlayerX		= Label("Player X: "				+ std::to_string(camera.Position.x),	25.0f, 550.0f, 0.3f, fontArial.getCharacterSet(PLAIN));
+	lbPlayerY		= Label("Player Y: "				+ std::to_string(camera.Position.y),	25.0f, 530.0f, 0.3f, fontArial.getCharacterSet(PLAIN));
+	lbPlayerZ		= Label("Player Z: "				+ std::to_string(camera.Position.z),	25.0f, 510.0f, 0.3f, fontArial.getCharacterSet(PLAIN));
+	lbLightStrength = Label("Ambient Light Strength: "	+ std::to_string(strength),				25.0f, 490.0f, 0.3f, fontArial.getCharacterSet(PLAIN));
+	lbYVelocity		= Label("Y Velocity: "				+ std::to_string(gravityVelocity),		25.0f, 470.0f, 0.3f, fontArial.getCharacterSet(PLAIN));
+	lbMouseX		= Label("Mouse X: "					+ std::to_string(lastX),				25.0f, 450.0f, 0.3f, fontArial.getCharacterSet(PLAIN));
+	lbMouseY		= Label("Mouse Y: "					+ std::to_string(lastY),				25.0f, 430.0f, 0.3f, fontArial.getCharacterSet(PLAIN));
+
+	// Add Information Labels to their Label vector
+	informationLabels.push_back(&lbFPS);
+	informationLabels.push_back(&lbPlayerX);
+	informationLabels.push_back(&lbPlayerY);
+	informationLabels.push_back(&lbPlayerZ);
+	informationLabels.push_back(&lbLightStrength);
+	informationLabels.push_back(&lbYVelocity);
+	informationLabels.push_back(&lbMouseX);
+	informationLabels.push_back(&lbMouseY);
+
+	// Create Menu Labels
+	lbSave = Label("Save", 350.0f, 570.0f, 0.5f, fontArial.getCharacterSet(currentCharacterSet));
+	lbLoad = Label("Load", 350.0f, 510.0f, 0.5f, fontArial.getCharacterSet(currentCharacterSet));
+	lbExit = Label("Exit", 350.0f, 450.0f, 0.5f, fontArial.getCharacterSet(currentCharacterSet));
+
+	// Add Menu Labels to their Label vector
+	menuLabels.push_back(&lbSave);
+	menuLabels.push_back(&lbLoad);
+	menuLabels.push_back(&lbExit);
 }
 
 #pragma endregion
@@ -569,60 +648,29 @@ void Render()
 {
 	if (gs == ACTIVE)
 	{
+		// Used to render as wireframe
+		//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
 		RawRender(shaderGEO, grassTexID, grassColor, grassBlocks);
 		RawRender(shaderGEO, stoneTexID, stoneColor, stoneBlocks);
 
+		//glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
 		// Set OpenGL options
-		glEnable(GL_CULL_FACE);
-		glEnable(GL_BLEND);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		//glEnable(GL_CULL_FACE);
+		//glEnable(GL_BLEND);
+		//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-		std::vector<Label>::iterator lbIt = welcomeLabels.begin();
-		GLint i = 0;
+		//std::vector<Label>::iterator lbIt = activeLabels.begin();
+		//GLint i = 0;
 
-		for (; lbIt < welcomeLabels.end(); lbIt++, i++)
-		{
-			welcomeLabels.at(i).render(shaderTXT, glm::vec3(1.0f, 1.0f, 1.0f));
-		}
-
-		glDisable(GL_BLEND);
-		glDisable(GL_CULL_FACE);
-
-		//for each (Label lb in welcomeLabels)
+		//for (; lbIt < activeLabels.end(); lbIt++, i++)
 		//{
-		//	lb.render(shaderTXT, glm::vec3(1.0f, 1.0f, 1.0f));
+		//	activeLabels.at(i).render(shaderTXT, glm::vec3(1.0f, 1.0f, 1.0f));
 		//}
 
-		//if (renderInformationText == true)
-		//{
-		//	//lbPlayerXPosition.render();
-
-		//	mouseFlag = (lastX > 400) ? false : true;
-
-		//	//todo - create textColor var
-		//	//if (!mouseFlag)
-		//	//{
-		//	//	RenderText(shaderTXT, "FPS: " + std::to_string(fps), 25.0f, 570.0f, 0.3f, glm::vec3(1.0, 0.0f, 0.0f));
-		//	//	RenderText(shaderTXT, "Player X: " + std::to_string(camera.Position.x), 25.0f, 550.0f, 0.3f, glm::vec3(1.0, 0.0f, 0.0f));
-		//	//	RenderText(shaderTXT, "Player Y: " + std::to_string(camera.Position.y), 25.0f, 530.0f, 0.3f, glm::vec3(1.0, 0.0f, 0.0f));
-		//	//	RenderText(shaderTXT, "Player Z: " + std::to_string(camera.Position.z), 25.0f, 510.0f, 0.3f, glm::vec3(1.0, 0.0f, 0.0f));
-		//	//	RenderText(shaderTXT, "Ambient Light Strength: " + std::to_string(strength), 25.0f, 490.0f, 0.3f, glm::vec3(1.0, 0.0f, 0.0f));
-		//	//	RenderText(shaderTXT, "Y Velocity: " + std::to_string(gravityVelocity), 25.0f, 470.0f, 0.3f, glm::vec3(1.0, 0.0f, 0.0f));
-		//	//	RenderText(shaderTXT, "Mouse X: " + std::to_string(lastX), 25.0f, 450.0f, 0.3f, glm::vec3(1.0, 0.0f, 0.0f));
-		//	//	RenderText(shaderTXT, "Mouse Y: " + std::to_string(lastY), 25.0f, 430.0f, 0.3f, glm::vec3(1.0, 0.0f, 0.0f));
-		//	//}
-		//	//else
-		//	//{
-		//	//	RenderText(shaderTXT, "FPS: " + std::to_string(fps), 25.0f, 570.0f, 0.3f, glm::vec3(1.0, 0.0f, 0.0f));
-		//	//	RenderText(shaderTXT, "Player X: " + std::to_string(camera.Position.x), 25.0f, 550.0f, 0.3f, glm::vec3(1.0, 0.0f, 0.0f));
-		//	//	RenderText(shaderTXT, "Player Y: " + std::to_string(camera.Position.y), 25.0f, 530.0f, 0.3f, glm::vec3(1.0, 0.0f, 0.0f));
-		//	//	RenderText(shaderTXT, "Player Z: " + std::to_string(camera.Position.z), 25.0f, 510.0f, 0.3f, glm::vec3(1.0, 0.0f, 0.0f));
-		//	//	RenderText(shaderTXT, "Ambient Light Strength: " + std::to_string(strength), 25.0f, 490.0f, 0.3f, glm::vec3(1.0, 0.0f, 0.0f));
-		//	//	RenderText(shaderTXT, "Y Velocity: " + std::to_string(gravityVelocity), 25.0f, 470.0f, 0.3f, glm::vec3(1.0, 0.0f, 0.0f));
-		//	//	RenderText(shaderTXT, "Mouse X: " + std::to_string(lastX), 25.0f, 450.0f, 0.3f, glm::vec3(1.0, 0.0f, 0.0f));
-		//	//	RenderText(shaderTXT, "Mouse Y: " + std::to_string(lastY), 25.0f, 430.0f, 0.3f, glm::vec3(1.0, 0.0f, 0.0f));
-		//	//}
-		//}
+		//glDisable(GL_BLEND);
+		//glDisable(GL_CULL_FACE);
 
 	}
 	else if (gs == WELCOME)
@@ -635,17 +683,58 @@ void Render()
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-		//uiTextDimension
-		// todo - get text dimension and render the text on position based on dimension
-		//RenderText(shaderTXT, "Welcome to Project Explorer", 100.0f, 300.0f, 1.0f, glm::vec3(1.0, 1.0f, 1.0f));
+		std::vector<Label*>::iterator lbIt = welcomeLabels.begin();
+		GLint i = 0;
+
+		for (; lbIt < welcomeLabels.end(); lbIt++, i++)
+		{
+			welcomeLabels.at(i)->render(shaderTXT, glm::vec3(1.0f, 1.0f, 1.0f));
+		}
 
 		glDisable(GL_BLEND);
 		glDisable(GL_CULL_FACE);
 	}
-	else if (gs == START)
+	else if (gs == INFORMATION)
 	{
 		RawRender(shaderGEO, grassTexID, grassColor, grassBlocks);
 		RawRender(shaderGEO, stoneTexID, stoneColor, stoneBlocks);
+
+		// Set OpenGL options
+		glEnable(GL_CULL_FACE);
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+		std::vector<Label*>::iterator lbIt = informationLabels.begin();
+		GLint i = 0;
+
+		for (; lbIt < informationLabels.end(); lbIt++, i++)
+		{
+			informationLabels.at(i)->render(shaderTXT, glm::vec3(1.0f, 0.0f, 0.0f));
+		}
+
+		glDisable(GL_BLEND);
+		glDisable(GL_CULL_FACE);
+	}
+	else if (gs == MENU)
+	{
+		RawRender(shaderGEO, grassTexID, grassColor, grassBlocks);
+		RawRender(shaderGEO, stoneTexID, stoneColor, stoneBlocks);
+
+		// Set OpenGL options
+		glEnable(GL_CULL_FACE);
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+		std::vector<Label*>::iterator lbIt = menuLabels.begin();
+		GLint i = 0;
+
+		for (; lbIt < menuLabels.end(); lbIt++, i++)
+		{
+			menuLabels.at(i)->render(shaderTXT, glm::vec3(1.0f, 0.0f, 0.0f));
+		}
+
+		glDisable(GL_BLEND);
+		glDisable(GL_CULL_FACE);
 	}
 
 	// Swap the buffers
@@ -654,32 +743,22 @@ void Render()
 
 void uiCollision()
 {
-	if (gs == WELCOME)
+	if (cursorFree)
 	{
-		if (checkUiCollision("Welcome to Project Explorer"))
+		if (gs == WELCOME)
 		{
-			std::cout << "True" << std::endl;
+			bool mouseCollision = false;
+			std::vector<Label*>::iterator lbIt = welcomeLabels.begin();
+			GLint i = 0;
+
+			for (; lbIt < welcomeLabels.end(); lbIt++, i++)
+			{
+				mouseCollision = welcomeLabels.at(i)->checkCollision(lastX, lastY);
+
+				if (mouseCollision) std::cout << "True" << std::endl;
+			}
 		}
 	}
-	else if (gs == INFORMATION)
-	{
-		//if (checkUiCollision(text))
-	}
-}
-
-bool checkUiCollision(std::string text)
-{
-	//GLfloat width, height;
-
-	//std::tie(width, height) = uiTextDimension("Welcome to Project Explorer", 0, 0, 1.0f);
-
-	//if (lastX >= 100.0f && lastX <= (100.0f + width) &&
-	//	lastY >= 300.0f && lastY <= (300.0f + height))
-	//{
-	//	return true;
-	//}
-
-	return false;
 }
 
 #pragma endregion
@@ -687,7 +766,14 @@ bool checkUiCollision(std::string text)
 #pragma region "User input"
 
 // Moves/alters the camera positions based on user input
-void Do_Movement()
+void treatInputs()
+{
+	treatPlayerMovementKeys();
+	treatGameControlKeys();
+	treatStateChangingKeys();
+}
+
+void treatPlayerMovementKeys()
 {
 	// Camera controls
 	if (keys[GLFW_KEY_W])
@@ -713,46 +799,104 @@ void Do_Movement()
 
 	playerPos.x = camera.Position.x;
 	playerPos.z = camera.Position.z;
+
+	// Update player position labels with new position values
+	lbPlayerX.setText("Player X: " + std::to_string(camera.Position.x));
+	lbPlayerY.setText("Player Y: " + std::to_string(camera.Position.y));
+	lbPlayerZ.setText("Player Z: " + std::to_string(camera.Position.z));
+}
+
+void treatGameControlKeys()
+{
+
+}
+
+void treatStateChangingKeys()
+{
+
 }
 
 // Is called whenever a key is pressed/released via GLFW
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode)
 {
 	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
-		glfwSetWindowShouldClose(window, GL_TRUE);
-	if (key == GLFW_KEY_F3 && action == GLFW_PRESS)
 	{
-		renderInformationText = (renderInformationText) ? false : true;
-		// Options
-		if (renderInformationText)
+		if (gs != MENU)
 		{
 			glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+			cursorFree = true;
+			lastGameState = gs;
+			gs = MENU;
 		}
 		else
 		{
 			glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+			cursorFree = false;
+			if (lastGameState == gs)
+			{
+				gs = ACTIVE;
+			}
+			else
+			{
+				gs = lastGameState;
+			}
+		}
+		//glfwSetWindowShouldClose(window, GL_TRUE);
+	}
+
+	if (key == GLFW_KEY_ENTER && action == GLFW_PRESS)
+	{
+		if (gs == WELCOME)
+		{
+			gs = ACTIVE;
+		}
+	}
+
+	if (key == GLFW_KEY_F3 && action == GLFW_PRESS)
+	{
+		if (gs != INFORMATION)
+		{
+			lastGameState = gs;
+			gs = INFORMATION;
+		}
+		else
+		{
+			if (lastGameState == gs)
+			{
+				gs = ACTIVE;
+			}
+			else
+			{
+				gs = lastGameState;
+			}
 		}
 	}
 	if (key == GLFW_KEY_R && action == GLFW_PRESS)
 	{
-		playerPos = glm::vec3(25.0, 25.0, 25.0);
-		initializeWorldVectors();
+		if (gs == ACTIVE)
+		{
+			playerPos = glm::vec3(25.0, 25.0, 25.0);
+			initializeWorldVectors();
+		}
 	}
 	if (key == GLFW_KEY_T && action == GLFW_PRESS)
 	{
-		switch (PGS)
+		if (gs == ACTIVE)
 		{
-			case GRAVITY:
-				PGS = FIXED_H_FLY;
-				break;
-			case FIXED_H_FLY:
-				PGS = FREE_FLY;
-				break;
-			case FREE_FLY:
-				PGS = GRAVITY;
-				break;
-			default:
-				break;
+			switch (PGS)
+			{
+				case GRAVITY:
+					PGS = FIXED_H_FLY;
+					break;
+				case FIXED_H_FLY:
+					PGS = FREE_FLY;
+					break;
+				case FREE_FLY:
+					PGS = GRAVITY;
+					break;
+				default:
+					break;
+			}
 		}
 	}
 	
@@ -761,54 +905,60 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 	
 	if (key == GLFW_KEY_SPACE && action == GLFW_PRESS)
 	{
-		switch (PGS)
+		if (gs == ACTIVE || gs == INFORMATION)
 		{
-			case GRAVITY:
-				if (jumpEnable)
-				{
-					spacePressed = true;
-					jumpEnable = false;
-				}
-				break;
+			switch (PGS)
+			{
+				case GRAVITY:
+					if (jumpEnable)
+					{
+						spacePressed = true;
+						jumpEnable = false;
+					}
+					break;
 
-			case FIXED_H_FLY:
-				if (!shiftPressed)
-				{
-					flyAscend = true;
-					flyDescend = false;
-				}
-				else
-				{
-					flyAscend = false;
-					flyDescend = true;
-				}
-				break;
+				case FIXED_H_FLY:
+					if (!shiftPressed)
+					{
+						flyAscend = true;
+						flyDescend = false;
+					}
+					else
+					{
+						flyAscend = false;
+						flyDescend = true;
+					}
+					break;
 
-			case FREE_FLY:
-				break;
+				case FREE_FLY:
+					break;
 
-			default:
-				break;
+				default:
+					break;
+			}
 		}
 	}
 	if (key == GLFW_KEY_SPACE && action == GLFW_RELEASE)
 	{
-		switch (PGS)
+		if (gs == ACTIVE || gs == INFORMATION)
 		{
-			case GRAVITY:
-				spacePressed = false;
-				break;
+			switch (PGS)
+			{
+				case GRAVITY:
+					spacePressed = false;
+					break;
 
-			case FIXED_H_FLY:
-				flyAscend = false;
-				flyDescend = false;
-				break;
+				case FIXED_H_FLY:
+					flyAscend = false;
+					flyDescend = false;
+					break;
 
-			case FREE_FLY:
-				break;
+				case FREE_FLY:
+					break;
 
-			default:
-				break;
+				default:
+					break;
+			}
 		}
 	}
 
@@ -833,7 +983,11 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 	lastX = xpos;
 	lastY = ypos;
 
-	if (gs == ACTIVE)
+	// Update mouse position labels with new position values
+	lbMouseX.setText("Mouse X: " + std::to_string(lastX));
+	lbMouseY.setText("Mouse Y: " + std::to_string(lastY));
+
+	if (gs == ACTIVE || gs == INFORMATION)
 	{
 		camera.ProcessMouseMovement(xoffset, yoffset);
 	}
