@@ -32,7 +32,10 @@ private:
 	FT_Face facePlain;
 	FT_Face faceBold;
 	FT_Face faceItalic;
+
+	bool initialized;
 public:
+	Font();
 	Font(std::string dirPath, std::string fontName);
 	~Font();
 

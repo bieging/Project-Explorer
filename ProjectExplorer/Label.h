@@ -38,14 +38,21 @@ private:
 
 	TextFormatting tf;
 
+	bool initialized;
+
 	void calculateDimension();
 public:
+	Label();
 	Label(std::string text, GLfloat xPos, GLfloat yPos, GLfloat scale, std::map<GLchar, Character> * charactersSet);
 	~Label();
 
 	// 0 - Plain / 1 - Bold / 2 - Italic
 	void changeFormatting(std::map<GLchar, Character> * charactersSet);
+	void setText(std::string newText);
 	void render(Shader &shader, glm::vec3 color);
+	
+	// Checks if mouse is inside the label area
+	bool checkCollision(GLint mouseX, GLint mouseY);
 };
 
 #endif // LABEL_H
