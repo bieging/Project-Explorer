@@ -22,6 +22,9 @@
 #include "Renderer.h"
 #include "Font.h"
 #include "Label.h"
+#include "PerlinNoise.h"
+#include "ChunkHandler.h"
+#include "BMath.h"
 
 // GLM Mathemtics
 #include <c:/opengl/glm/glm.hpp>
@@ -41,11 +44,11 @@ using namespace irrklang;
 
 ISoundEngine *SoundEngine = createIrrKlangDevice();
 
-//Font fontArial;
+PerlinNoise perlin(145);
 
 // Properties
 GLuint screenWidth = 800, screenHeight = 600;
-GLuint mapSideSize = 50;
+GLuint mapSideSize = 150;
 GLuint mapBorderSize = 25;
 
 int randomMin = 0;
@@ -64,10 +67,10 @@ bool spaceReleased = false;
 bool shiftReleased = false;
 
 bool jumpEnable = true;
-int jumpTime = 7;
+int jumpTime = 15;
 int jumpTimeCounter = jumpTime;
 
-GLfloat runSpeedMultiplier = 2.5f;
+GLfloat runSpeedMultiplier = 3.0f;
 
 bool flyAscend = false;
 bool flyDescend = false;
@@ -175,6 +178,9 @@ GLFWwindow* window;
 std::vector<Label> welcomeLabels;
 //std::vector<std::string> informationStrings;
 
+// Perlin test
+std::vector<GLfloat> perlinValues;
+
 // The MAIN function, from here we start our application and run our Game loop
 int main()
 {
@@ -236,8 +242,8 @@ int main()
 	initRenderData();
 
 	// Load textures
-	stoneTexID = loadTexture("Textures/rock.png");
-	grassTexID  = loadTexture("Textures/grassReal.png");
+	stoneTexID = loadTexture("Textures/rockWire.png");
+	grassTexID  = loadTexture("Textures/grassRealWire.png");
 #pragma endregion
 
 	// Game loop
@@ -272,7 +278,7 @@ int main()
 		// Draw objects
 		shaderGEO.Use();
 		glm::mat4 view = camera.GetViewMatrix();
-		glm::mat4 projection = glm::perspective(camera.Zoom, (float)screenWidth / (float)screenHeight, 0.1f, 100.0f);
+		glm::mat4 projection = glm::perspective(camera.Zoom, (float)screenWidth / (float)screenHeight, 0.1f, 300.0f);
 		
 		glUniformMatrix4fv(glGetUniformLocation(shaderGEO.Program, "view"), 1, GL_FALSE, glm::value_ptr(view));
 		glUniformMatrix4fv(glGetUniformLocation(shaderGEO.Program, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
@@ -391,7 +397,7 @@ void pgsGravity(GLfloat dt)
 		}
 	}
 
-	camera.Position.y = playerPos.y + 1.5;
+	camera.Position.y = playerPos.y + 1.8f;
 }
 
 void pgsFixedHFly(GLfloat dt)
@@ -405,7 +411,7 @@ void pgsFixedHFly(GLfloat dt)
 		playerPos.y -= 2 * dt;
 	}
 
-	camera.Position.y = playerPos.y + 1.5;
+	camera.Position.y = playerPos.y + 1.8f;
 }
 
 void pgsFreeFly(GLfloat dt)
@@ -452,27 +458,24 @@ void initializeWorldVectors()
 		{
 			int randNum = randomMin + (rand() % (int)(randomMax - randomMin + 1));
 
+			GLfloat perlinX = bmath::norm(i, 0, 255);
+			GLfloat perlinY = bmath::norm(j, 0, 255);
+
+			GLfloat perlinValue = perlin.noise(perlinX, perlinY, 0.0f);
+
+			GLfloat mappedValue = std::floor(bmath::map(perlinValue, 0.0f, 1.0f, 0.0f, 255.0f));
+
+			heightMapPos.push_back(glm::vec3(i, 0.0, j));
+			heightValue.push_back(mappedValue);
+
 			if (randNum < 50)
 			{
-				grassBlocks.push_back(glm::vec3(i + 0.5f, 0.0, j + 0.5f));
+				grassBlocks.push_back(glm::vec3(i + 0.5f, mappedValue, j + 0.5f));
 			}
 			else
 			{
-				stoneBlocks.push_back(glm::vec3(i + 0.5f, 0.0, j + 0.5f));
+				stoneBlocks.push_back(glm::vec3(i + 0.5f, mappedValue, j + 0.5f));
 			}
-		}
-	}
-
-	for (int i = 0; i < mapSideSize + ((2 * mapBorderSize) - 1); i++)
-	{
-		for (int j = 0; j < mapSideSize + (2 * mapBorderSize - 1); j++)
-		{
-			heightMapPos.push_back(glm::vec3(i, 0.0, j));
-
-			if ((j >= 25 && i >= 25) && (j <= 74 && i <= 74))
-				heightValue.push_back(0.0);
-			else
-				heightValue.push_back(-100.0);
 		}
 	}
 }
@@ -569,8 +572,13 @@ void Render()
 {
 	if (gs == ACTIVE)
 	{
+		// Used to render as wireframe
+		//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
 		RawRender(shaderGEO, grassTexID, grassColor, grassBlocks);
 		RawRender(shaderGEO, stoneTexID, stoneColor, stoneBlocks);
+
+		//glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
 		// Set OpenGL options
 		glEnable(GL_CULL_FACE);

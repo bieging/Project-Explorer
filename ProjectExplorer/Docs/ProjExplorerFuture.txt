@@ -6,6 +6,8 @@ Create issues with this sections
 
 Later
 
+Increase player camera position as the blocks seem very big now
+
 World 1
 	Should I store the world in a 2d array, or in a vector
 	To remember - When blocks get a more than 1 height difference, there should be blocks to hide the empty space
