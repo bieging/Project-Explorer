@@ -28,6 +28,8 @@ class Label
 private:
 	std::string text;
 
+	bool colliding;
+
 	GLuint textVAO, textVBO;
 
 	GLfloat width, height;
@@ -52,7 +54,7 @@ public:
 	void render(Shader &shader, glm::vec3 color);
 	
 	// Checks if mouse is inside the label area
-	bool checkCollision(GLint mouseX, GLint mouseY);
+	void checkCollision(GLint mouseX, GLint mouseY);
 };
 
 #endif // LABEL_H

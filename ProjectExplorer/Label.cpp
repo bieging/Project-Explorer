@@ -7,6 +7,7 @@ Label::Label()
 Label::Label(std::string text, GLfloat xPos, GLfloat yPos, GLfloat scale, std::map<GLchar, Character> * charactersSet)
 {
 	this->text = text;
+	this->colliding = false;
 	this->xPos = xPos;
 	this->yPos = yPos;
 	this->scale = scale;
@@ -164,21 +165,21 @@ void Label::render(Shader &shader, glm::vec3 color)
 	}
 }
 
-bool Label::checkCollision(GLint mouseX, GLint mouseY)
+void Label::checkCollision(GLint mouseX, GLint mouseY)
 {
 	if (this->initialized)
 	{
 		if (mouseX <= this->xPos || mouseX >= (this->xPos + this->width))
 		{
-			return false;
+			this->colliding = false;
 		}
 
 		if (mouseY <= this->yPos || mouseY >= (this->yPos + this->height))
 		{
-			return false;
+			this->colliding = false;
 		}
 
-		return true;
+		this->colliding = true;
 	}
 	else
 	{

@@ -7,17 +7,74 @@ Create issues with this sections
 	Game State 1
 		Put limitations on keys callback function  based on current game state
 
+Sequence
+	Finish Selfmade Interface 1
+	Chunk and Chunk Loader
+	Save worldmap to file
+	Load worldmap from file
+	Sun ( Day and Night cycle with Diffuse lighting )
+	Ray-Picking ( Object interaction )
+	Tinker more with terrain generation ( sand, water, trees and vegetation )
+
 Later
 
 Increase player camera position as the blocks seem very big now
 
 Chunk and ChunkHandler (Important)
 
+Terrain 1
+	Create sand blocks below a certain height
+
+Terrain 1.1
+	Check out noise generation used by this video: https://www.youtube.com/watch?v=GTAqjyG2oOc
+
+Terrain 2
+	Create water blocks a few blocks below sand blocks
+	Sand blocks should still be the floor
+	Player can go through water ( as standard )
+
+Terrain 3
+	Add trees
+	Add walkthroughable vegetation ( similar to grass from LearnOpenGL tutorial )
+
+Terrain 4
+	Research on how to have more control on the terrain generation ( octaves? )
+	Search for other implementations
+	Try to understand it deeply and do my own mods
+	( Check links on oneTab - Very cool stuff )
+
+GLFW 1
+	Full screen ( Switch between windowed and fullscreen ) ( http://www.glfw.org/docs/latest/window_guide.html )
+
+GLFW 1.1
+	CHangeable resolution ( Through options menu )
+
+Combat
+	Check if weapon collided with any monster that belongs to the current chunk and the 8 chunks in the surrounding
+
 Clean input - Put most things on an treatInput function
+
+Transformations tests
+	Make a block rotate on its own
+	Make a block move based on time and update heightMap as block moves
+	Make two blocks related. Moving one will also move the other
 
 World 1
 	Should I store the world in a 2d array, or in a vector
 	To remember - When blocks get a more than 1 height difference, there should be blocks to hide the empty space
+
+Save and Load 1
+	Create a MENU_STATE enum
+	When setting option to go to menu, set gs to MENU and set ms to given menu, i.e. OPTIONS ( Save, load, options, exit)
+	Save will save the map to a standard file and directory
+	Load will load the map from the standard file and directory
+
+Save and Load 2
+	When clicking to save, enter ms = SAVE, load will have ms = LOAD
+	Save will display a list of all saved maps. Map can be overwritten
+	Load will display a list of all maps that can be loaded
+	Then, when I create the inventory screen, it'll become a ms = INVENTORY
+	For a crafting table, ms = CRAFTING_TABLE_WOOD, ms = CRAFTING_TABLE_STONE, just to get the idea
 
 Selfmade Interface 2
 	Create rectangle with text behind

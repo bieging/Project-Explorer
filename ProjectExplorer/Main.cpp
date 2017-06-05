@@ -45,7 +45,7 @@ ISoundEngine *SoundEngine = createIrrKlangDevice();
 int aux = 0;
 
 // Properties
-GLuint screenWidth = 800, screenHeight = 600;
+GLuint screenWidth = 1920, screenHeight = 1080;
 GLuint mapSideSize = 50;
 GLuint mapBorderSize = 25;
 
@@ -205,7 +205,7 @@ int main()
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 	glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
 
-	window = glfwCreateWindow(screenWidth, screenHeight, "Project Explorer", nullptr, nullptr); // Windowed
+	window = glfwCreateWindow(screenWidth, screenHeight, "Project Explorer", glfwGetPrimaryMonitor(), nullptr); // Windowed
 	glfwMakeContextCurrent(window);
 
 	// Set the required callback functions
@@ -259,7 +259,6 @@ int main()
 	stoneTexID = loadTexture("Textures/rockWire.png");
 	grassTexID  = loadTexture("Textures/grassRealWire.png");
 
-	std::cin.get();
 #pragma endregion
 
 	// Game loop
@@ -733,6 +732,14 @@ void Render()
 			menuLabels.at(i)->render(shaderTXT, glm::vec3(1.0f, 0.0f, 0.0f));
 		}
 
+		lbIt = informationLabels.begin();
+		i = 0;
+
+		for (; lbIt < informationLabels.end(); lbIt++, i++)
+		{
+			informationLabels.at(i)->render(shaderTXT, glm::vec3(1.0f, 0.0f, 0.0f));
+		}
+
 		glDisable(GL_BLEND);
 		glDisable(GL_CULL_FACE);
 	}
@@ -745,17 +752,15 @@ void uiCollision()
 {
 	if (cursorFree)
 	{
-		if (gs == WELCOME)
+		if (gs == MENU)
 		{
 			bool mouseCollision = false;
-			std::vector<Label*>::iterator lbIt = welcomeLabels.begin();
+			std::vector<Label*>::iterator lbIt = menuLabels.begin();
 			GLint i = 0;
 
-			for (; lbIt < welcomeLabels.end(); lbIt++, i++)
+			for (; lbIt < menuLabels.end(); lbIt++, i++)
 			{
-				mouseCollision = welcomeLabels.at(i)->checkCollision(lastX, lastY);
-
-				if (mouseCollision) std::cout << "True" << std::endl;
+				menuLabels.at(i)->checkCollision(lastX, screenHeight - lastY);
 			}
 		}
 	}
