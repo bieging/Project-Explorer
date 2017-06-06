@@ -14,11 +14,13 @@ Sequence
 	Load worldmap from file
 	Sun ( Day and Night cycle with Diffuse lighting )
 	Ray-Picking ( Object interaction )
-	Tinker more with terrain generation ( sand, water, trees and vegetation )
+	Tinker more with terrain generation ( sand, water, trees and vegetation, octaves )
 
 Later
 
 Increase player camera position as the blocks seem very big now
+
+Elevator ( Dynamic Heighmap test)
 
 Chunk and ChunkHandler (Important)
 
@@ -178,3 +180,6 @@ Space Partition Algorithms
 	
 Reset game state
 	Press key and reset all game variables
+
+Shadows
+Multiple light points
