@@ -28,12 +28,12 @@
     <Filter Include="UIClasses">
       <UniqueIdentifier>{024e47de-bae9-449a-b6d6-184fb73afa36}</UniqueIdentifier>
     </Filter>
+    <Filter Include="UIHeaders">
+      <UniqueIdentifier>{f1196756-e604-4f42-8c82-2e21d055c37c}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Main.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Label.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Font.cpp">
@@ -45,6 +45,15 @@
     <ClCompile Include="ChunkHandler.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Label.cpp">
+      <Filter>UIClasses</Filter>
+    </ClCompile>
+    <ClCompile Include="UI.cpp">
+      <Filter>UIClasses</Filter>
+    </ClCompile>
+    <ClCompile Include="UIElement.cpp">
+      <Filter>UIClasses</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Camera.h">
@@ -54,9 +63,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Shader.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Label.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Font.h">
@@ -76,6 +82,15 @@
     </ClInclude>
     <ClInclude Include="BMath.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Label.h">
+      <Filter>UIHeaders</Filter>
+    </ClInclude>
+    <ClInclude Include="UI.h">
+      <Filter>UIHeaders</Filter>
+    </ClInclude>
+    <ClInclude Include="UIElement.h">
+      <Filter>UIHeaders</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
