@@ -100,6 +100,8 @@ Selfmade Interface 4
 		When check collision is true, call method and pass its parameters
 
 Selfmade Interface 5
+	Improve BBox - It's a little small right now
+	Create UI class that will be the class that commands everything that is UI related
 	Create UIElement class that will be the super class of the Label and Button classes. This will have common features for both label and button
 
 Text Rendering 1

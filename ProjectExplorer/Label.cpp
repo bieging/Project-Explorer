@@ -172,11 +172,13 @@ void Label::checkCollision(GLint mouseX, GLint mouseY)
 		if (mouseX <= this->xPos || mouseX >= (this->xPos + this->width))
 		{
 			this->colliding = false;
+			return;
 		}
 
 		if (mouseY <= this->yPos || mouseY >= (this->yPos + this->height))
 		{
 			this->colliding = false;
+			return;
 		}
 
 		this->colliding = true;
@@ -185,5 +187,14 @@ void Label::checkCollision(GLint mouseX, GLint mouseY)
 	{
 		std::cout << "Unable to process operation because object is not initialized" << std::endl;
 	}
+}
 
+void Label::setLeftMouseClickFunction(mouseClickFunction clickFunction)
+{
+	this->leftMouseClickFunction = clickFunction;
+}
+
+void Label::setRightMouseClickFunction(mouseClickFunction clickFunction)
+{
+	this->rightMouseClickFunction = clickFunction;
 }

@@ -28,8 +28,6 @@ class Label
 private:
 	std::string text;
 
-	bool colliding;
-
 	GLuint textVAO, textVBO;
 
 	GLfloat width, height;
@@ -43,7 +41,11 @@ private:
 	bool initialized;
 
 	void calculateDimension();
+
+	typedef void(*mouseClickFunction)(void);
 public:
+	bool colliding;
+	
 	Label();
 	Label(std::string text, GLfloat xPos, GLfloat yPos, GLfloat scale, std::map<GLchar, Character> * charactersSet);
 	~Label();
@@ -55,6 +57,10 @@ public:
 	
 	// Checks if mouse is inside the label area
 	void checkCollision(GLint mouseX, GLint mouseY);
+	void setLeftMouseClickFunction(mouseClickFunction clickFunction);
+	void setRightMouseClickFunction(mouseClickFunction clickFunction);
+	mouseClickFunction leftMouseClickFunction;
+	mouseClickFunction rightMouseClickFunction;
 };
 
 #endif // LABEL_H

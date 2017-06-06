@@ -45,7 +45,7 @@ ISoundEngine *SoundEngine = createIrrKlangDevice();
 int aux = 0;
 
 // Properties
-GLuint screenWidth = 1920, screenHeight = 1080;
+GLuint screenWidth = 800, screenHeight = 600;
 GLuint mapSideSize = 50;
 GLuint mapBorderSize = 25;
 
@@ -103,6 +103,7 @@ GLfloat maxGravityVelocity = 0.3;
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
+void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
 void character_callback(GLFWwindow* window, unsigned int codepoint);
 void treatInputs();
 void treatPlayerMovementKeys();
@@ -110,6 +111,10 @@ void treatGameControlKeys();
 void treatStateChangingKeys();
 void Do_Movement();
 void updatePlayerVelocity(GLfloat dt);
+
+void lbSave_leftClick();
+void lbLoad_leftClick();
+void lbExit_leftClick();
 
 void pgsGravity(GLfloat dt);
 void pgsFixedHFly(GLfloat dt);
@@ -205,12 +210,13 @@ int main()
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 	glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
 
-	window = glfwCreateWindow(screenWidth, screenHeight, "Project Explorer", glfwGetPrimaryMonitor(), nullptr); // Windowed
+	window = glfwCreateWindow(screenWidth, screenHeight, "Project Explorer", nullptr/*glfwGetPrimaryMonitor()*/, nullptr); // Windowed
 	glfwMakeContextCurrent(window);
 
 	// Set the required callback functions
 	glfwSetKeyCallback(window, key_callback);
 	glfwSetCursorPosCallback(window, mouse_callback);
+	glfwSetMouseButtonCallback(window, mouse_button_callback);
 	glfwSetScrollCallback(window, scroll_callback);
 	glfwSetCharCallback(window, character_callback);
 
@@ -549,6 +555,11 @@ void initializeUI()
 	lbLoad = Label("Load", 350.0f, 510.0f, 0.5f, fontArial.getCharacterSet(currentCharacterSet));
 	lbExit = Label("Exit", 350.0f, 450.0f, 0.5f, fontArial.getCharacterSet(currentCharacterSet));
 
+	// Set function for each button
+	lbSave.setLeftMouseClickFunction(lbSave_leftClick);
+	lbLoad.setLeftMouseClickFunction(lbLoad_leftClick);
+	lbExit.setLeftMouseClickFunction(lbExit_leftClick);
+
 	// Add Menu Labels to their Label vector
 	menuLabels.push_back(&lbSave);
 	menuLabels.push_back(&lbLoad);
@@ -754,7 +765,6 @@ void uiCollision()
 	{
 		if (gs == MENU)
 		{
-			bool mouseCollision = false;
 			std::vector<Label*>::iterator lbIt = menuLabels.begin();
 			GLint i = 0;
 
@@ -846,7 +856,6 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 				gs = lastGameState;
 			}
 		}
-		//glfwSetWindowShouldClose(window, GL_TRUE);
 	}
 
 	if (key == GLFW_KEY_ENTER && action == GLFW_PRESS)
@@ -1002,6 +1011,40 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 	}
 }
 
+void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
+{
+	if (gs == MENU)
+	{
+		if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
+		{
+			std::vector<Label*>::iterator lbIt = menuLabels.begin();
+			GLint i = 0;
+
+			for (; lbIt < menuLabels.end(); lbIt++, i++)
+			{
+				if (menuLabels.at(i)->colliding)
+				{
+					menuLabels.at(i)->leftMouseClickFunction();
+				}
+			}
+		}
+
+		if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS)
+		{
+			std::vector<Label*>::iterator lbIt = menuLabels.begin();
+			GLint i = 0;
+
+			for (; lbIt < menuLabels.end(); lbIt++, i++)
+			{
+				if (menuLabels.at(i)->colliding)
+				{
+					menuLabels.at(i)->rightMouseClickFunction();
+				}
+			}
+		}
+	}
+}
+
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
 	camera.ProcessMouseScroll(yoffset);
@@ -1011,6 +1054,21 @@ void character_callback(GLFWwindow* window, unsigned int codepoint)
 {
 	//char c = codepoint;
 	//std::cout << c;
+}
+
+void lbSave_leftClick()
+{
+	std::cout << "Saved map" << std::endl;
+}
+
+void lbLoad_leftClick()
+{
+	std::cout << "Loaded new map" << std::endl;
+}
+
+void lbExit_leftClick()
+{
+	glfwSetWindowShouldClose(window, GL_TRUE);
 }
 
 #pragma endregion
