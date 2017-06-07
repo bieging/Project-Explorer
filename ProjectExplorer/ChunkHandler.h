@@ -33,8 +33,6 @@ public:
 	std::vector<Chunk> chunks;
 	std::vector<int> visibleChunks;
 
-	// This is how many chunk will be visible by the player
-	int visibleChunkSide = 15;
 
 	ChunkHandler();
 	ChunkHandler(float playerXPos, float playerZPos);
@@ -44,6 +42,8 @@ public:
 	void updateVisibleChunks(float playerXPos, float playerZPos);
 	void updatePlayerPosition(float playerXPos, float playerZPos);
 	float getHeightValue(float playerXPos, float playerZPos);
+	float getVisibleChunkSide();
+	void setVisibleChunkSid(int newVisibleChunkSide);
 private:
 	// Stores the position of the chunk and the index of the chunk in the chunk vector
 	std::map<std::pair<int, int>, int> worldmap;
@@ -58,8 +58,15 @@ private:
 	int randomMin = 0;
 	int randomMax = 100;
 
+	// Random variables used in the terrain generation
+	int playerLastX = 0;
+	int playerLastZ = 0;
+
 	// This is how many chunk will be generated around the player
 	int initialChunkSide = 11;
+
+	// This is how many chunk will be visible by the player
+	int visibleChunkSide = 5;
 
 	void generateChunk(int chunkX, int chunkZ);
 	void generateInitialChunks(int chunkX, int chunkZ);

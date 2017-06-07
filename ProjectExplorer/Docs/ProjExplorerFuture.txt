@@ -9,10 +9,11 @@ Create issues with this sections
 
 Sequence
 	ok - Finish Selfmade Interface 1
-	Chunk and Chunk Loader
+	ok - Chunk and Chunk Loader
+	Instancing
+	Sun ( Day and Night cycle with Diffuse lighting )
 	Save worldmap to file
 	Load worldmap from file
-	Sun ( Day and Night cycle with Diffuse lighting )
 	Ray-Picking ( Object interaction )
 	Tinker more with terrain generation ( sand, water, trees and vegetation, octaves )
 
@@ -49,7 +50,8 @@ GLFW 1
 	Full screen ( Switch between windowed and fullscreen ) ( http://www.glfw.org/docs/latest/window_guide.html )
 
 GLFW 1.1
-	CHangeable resolution ( Through options menu )
+	Changeable resolution ( Through options menu )
+		Must update position of all UIElements
 
 Combat
 	Check if weapon collided with any monster that belongs to the current chunk and the 8 chunks in the surrounding
@@ -78,18 +80,21 @@ Save and Load 2
 	Then, when I create the inventory screen, it'll become a ms = INVENTORY
 	For a crafting table, ms = CRAFTING_TABLE_WOOD, ms = CRAFTING_TABLE_STONE, just to get the idea
 
-Selfmade Interface 2
+Interface 1.5
+	Create options label in the menu context
+
+Interface Engine 2.1
 	Create rectangle with text behind
 	Able to change rect color, alpha and text color and alpha
 
-Selfmade Interface 3
+Interface Engine 2.2
 	ok - Create Label class
 	ok - The class will have everything needed to render a text
 	ok - Will have a render function, shader, VAO and VBO and stuff
 	Check mouse collision with object
 	ok - Has position and size parameters
 
-Selfmade Interface 4
+Interface Engine 2.3
 	Create Button class
 	The class will have everything needed to render a text
 	Will have a render function, shader, VAO and VBO and stuff

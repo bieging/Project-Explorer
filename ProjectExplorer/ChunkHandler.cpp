@@ -5,6 +5,9 @@ ChunkHandler::ChunkHandler() {}
 
 ChunkHandler::ChunkHandler(float playerXPos, float playerZPos)
 {
+	playerLastX = playerXPos;
+	playerLastZ = playerZPos;
+
 	// Player's rounded position
 	int xPos = static_cast<int>(playerXPos);
 	int zPos = static_cast<int>(playerZPos);
@@ -62,6 +65,9 @@ ChunkHandler::ChunkHandler(float playerXPos, float playerZPos)
 
 ChunkHandler::ChunkHandler(float playerXPos, float playerZPos, unsigned int seed)
 {
+	playerLastX = playerXPos;
+	playerLastZ = playerZPos;
+
 	this->seed = seed;
 
 	perlin = PerlinNoise(seed);
@@ -129,6 +135,9 @@ ChunkHandler::~ChunkHandler()
 
 void ChunkHandler::updateVisibleChunks(float playerXPos, float playerZPos)
 {
+	playerLastX = playerXPos;
+	playerLastZ = playerZPos;
+
 	visibleChunks.clear();
 
 	// Player's rounded position
@@ -166,6 +175,9 @@ void ChunkHandler::updateVisibleChunks(float playerXPos, float playerZPos)
 
 void ChunkHandler::updatePlayerPosition(float playerXPos, float playerZPos)
 {
+	playerLastX = playerXPos;
+	playerLastZ = playerZPos;
+
 	// Player's rounded position
 	int xPos = static_cast<int>(playerXPos);
 	int zPos = static_cast<int>(playerZPos);
@@ -183,6 +195,9 @@ void ChunkHandler::updatePlayerPosition(float playerXPos, float playerZPos)
 
 float ChunkHandler::getHeightValue(float playerXPos, float playerZPos)
 {
+	playerLastX = playerXPos;
+	playerLastZ = playerZPos;
+
 	// Player's rounded position
 	// Using std::floor instead of static_cast<int> because 
 	// it rounds numbers to negative infinity, while the cast
@@ -191,15 +206,32 @@ float ChunkHandler::getHeightValue(float playerXPos, float playerZPos)
 	int zPos = std::floor(playerZPos);
 
 	// Absolute x and z positions of the chunk directly beneath the player
-	int chunkXIndex = std::floor(xPos / chunkSize);
-	int chunkZIndex = std::floor(zPos / chunkSize);
+	// Create a float chunkSize so I can have a decimal result in the division
+	// Before calling floor()
+	float chunkSizef = chunkSize;
+	int chunkXIndex = std::floor(xPos / chunkSizef);
+	int chunkZIndex = std::floor(zPos / chunkSizef);
 
 	int chunkIndex = worldmap.at(std::pair<int, int>(chunkXIndex, chunkZIndex));
 	
-	xPos = (xPos < 0) ? (chunkSize - xPos) : xPos;
-	zPos = (zPos < 0) ? (chunkSize - zPos) : zPos;
+	// If coordinate is below zero, get the module of the position and
+	// sum chunkSize to it to get the real position in the blocksHeight array
+	xPos = (xPos < 0) ? (chunkSize + (xPos % 16)) : xPos;
+	zPos = (zPos < 0) ? (chunkSize + (zPos % 16)) : zPos;
 
 	return chunks.at(chunkIndex).blocksHeight[xPos % chunkSize][zPos % chunkSize];
+}
+
+float ChunkHandler::getVisibleChunkSide()
+{
+	return visibleChunkSide;
+}
+
+void ChunkHandler::setVisibleChunkSid(int newVisibleChunkSide)
+{
+	visibleChunkSide = newVisibleChunkSide;
+
+	updateVisibleChunks(playerLastX, playerLastZ);
 }
 
 void ChunkHandler::generateChunk(int chunkXIndex, int chunkZIndex)

@@ -47,8 +47,8 @@ int aux = 0;
 
 // Properties
 GLuint screenWidth = 800, screenHeight = 600;
-GLuint mapSideSize = 50;
-GLuint mapBorderSize = 25;
+//GLuint mapSideSize = 50;
+//GLuint mapBorderSize = 25;
 
 int randomMin = 0;
 int randomMax = 100;
@@ -135,14 +135,14 @@ void initializeWorldVectors();
 void initializeUI();
 
 // Camera
-Camera camera(glm::vec3(5000.0f, 1.8f, 5000.0f));
+Camera camera(glm::vec3(10.0f, 1.8f, 10.0f));
 bool keys[1024];
 GLfloat lastX = 400, lastY = 300;
 bool firstMouse = true;
 bool cursorFree = false;
 
 // Y is set to 0.0 because player will automatically get the Y position from the heightMap
-glm::vec3 playerPos(glm::vec3(5000.0f, 0.0f, 5000.0f));
+glm::vec3 playerPos(glm::vec3(10.0f, 0.0f, 10.0f));
 
 GLfloat deltaTime = 0.0f;
 GLfloat lastFrame = 0.0f;
@@ -200,6 +200,7 @@ Label lbExit;
 
 // Perlin Terrain Generator
 PerlinNoise perlin;
+GLuint seed = 0;
 
 // Chunks Handler
 ChunkHandler chunkHandler;
@@ -374,7 +375,6 @@ void pgsGravity(GLfloat dt)
 		}
 		else
 		{
-			//GLint heightI = std::find(heightMapPos.begin(), heightMapPos.end(), glm::vec3(floor(playerPos.x), 0.0, floor(playerPos.z))) - heightMapPos.begin();
 			GLint heightValue = chunkHandler.getHeightValue(playerPos.x, playerPos.z);
 
 			if (playerPos.y > heightValue)
@@ -477,13 +477,12 @@ void initializePerlinNoise()
 {
 	std::cout << "Please enter a seed number to generate your terrain: " << std::endl;
 	std::cout << "Enter \"n\" to initialize with standard seed" << std::endl;
-	GLuint seed = 0;
 	std::string seedInput = "";
 	std::cin >> seedInput;
 	if (seedInput != "n")
 	{
 		seed = std::stoi(seedInput);
-		perlin = PerlinNoise(seed);
+		//perlin = PerlinNoise(seed);
 	}
 }
 
@@ -496,7 +495,7 @@ void initializeWorldVectors()
 
 	auto start = std::chrono::high_resolution_clock::now();
 
-	chunkHandler = ChunkHandler(playerPos.x, playerPos.z, 0);
+	chunkHandler = ChunkHandler(playerPos.x, playerPos.z, seed);
 
 	//for (int i = 0; i < mapSideSize - 1; i++)
 	//{
