@@ -8,7 +8,7 @@ Create issues with this sections
 		Put limitations on keys callback function  based on current game state
 
 Sequence
-	Finish Selfmade Interface 1
+	ok - Finish Selfmade Interface 1
 	Chunk and Chunk Loader
 	Save worldmap to file
 	Load worldmap from file

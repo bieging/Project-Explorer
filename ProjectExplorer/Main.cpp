@@ -23,8 +23,8 @@
 #include "Font.h"
 #include "Label.h"
 #include "PerlinNoise.h"
+//#include "BMath.h"
 #include "ChunkHandler.h"
-#include "BMath.h"
 
 // GLM Mathemtics
 #include <c:/opengl/glm/glm.hpp>
@@ -142,7 +142,7 @@ bool firstMouse = true;
 bool cursorFree = false;
 
 // Y is set to 0.0 because player will automatically get the Y position from the heightMap
-glm::vec3 playerPos(glm::vec3(25.0f, 0.0f, 25.0f));
+glm::vec3 playerPos(glm::vec3(2000.0f, 0.0f, 2000.0f));
 
 GLfloat deltaTime = 0.0f;
 GLfloat lastFrame = 0.0f;
@@ -255,6 +255,12 @@ int main()
 	
 	// Create map and heightMap
 	initializeWorldVectors();
+
+	playerPos.x = 10.0f;
+	playerPos.z = 10.0f;
+
+	ChunkHandler chunkHandler(playerPos.x, playerPos.z, 0);
+	std::cin.get();
 
 	// Configure all interface related objects
 	initializeUI();
@@ -492,34 +498,39 @@ void initializeWorldVectors()
 	heightMapPos.clear();
 	heightValue.clear();
 
+	auto start = std::chrono::high_resolution_clock::now();
+
 	for (int i = 0; i < mapSideSize - 1; i++)
 	{
 		for (int j = 0; j < mapSideSize - 1; j++)
 		{
-			int randNum = randomMin + (rand() % (int)(randomMax - randomMin + 1));
+			//int randNum = randomMin + (rand() % (int)(randomMax - randomMin + 1));
 
-			GLfloat perlinX = bmath::norm(i, 0, 255);
-			GLfloat perlinY = bmath::norm(j, 0, 255);
+			//GLfloat perlinX = bmath::norm(i, 0, 255);
+			//GLfloat perlinY = bmath::norm(j, 0, 255);
 
-			GLfloat perlinValue = perlin.noise(perlinX, perlinY, 0.0f);
+			//GLfloat perlinValue = perlin.noise(perlinX, perlinY, 0.0f);
 
-			GLfloat mappedValue = std::floor(bmath::map(perlinValue, 0.0f, 1.0f, 0.0f, 255.0f));
+			//GLfloat mappedValue = std::floor(bmath::map(perlinValue, 0.0f, 1.0f, 0.0f, 255.0f));
 
-			heightMapPos.push_back(glm::vec3(i, 0.0, j));
-			heightValue.push_back(mappedValue);
+			//heightMapPos.push_back(glm::vec3(i, 0.0, j));
+			//heightValue.push_back(mappedValue);
 
-			if (randNum < 50)
-			{
-				grassBlocks.push_back(glm::vec3(i + 0.5f, mappedValue, j + 0.5f));
-			}
-			else
-			{
-				stoneBlocks.push_back(glm::vec3(i + 0.5f, mappedValue, j + 0.5f));
-			}
+			//if (randNum < 50)
+			//{
+			//	grassBlocks.push_back(glm::vec3(i + 0.5f, mappedValue, j + 0.5f));
+			//}
+			//else
+			//{
+			//	stoneBlocks.push_back(glm::vec3(i + 0.5f, mappedValue, j + 0.5f));
+			//}
 		}
 	}
 
-	std::cin.get();
+	auto finish = std::chrono::high_resolution_clock::now();
+	int mapBuildTime = std::chrono::duration_cast<std::chrono::milliseconds>(finish - start).count();
+
+	std::cout << "Map took: " << std::to_string(mapBuildTime) << " to build" << std::endl;
 }
 
 void initializeUI()
