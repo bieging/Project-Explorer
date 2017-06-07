@@ -1,8 +1,6 @@
 #include "Label.h"
 
-Label::Label()
-{
-}
+Label::Label() {}
 
 Label::Label(std::string text, GLfloat xPos, GLfloat yPos, GLfloat scale, std::map<GLchar, Character> * charactersSet)
 {

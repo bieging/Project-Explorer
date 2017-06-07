@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include <iostream>
 #include <vector>
 #include <map>
 
@@ -29,16 +30,24 @@ struct Vector2Compare
 class ChunkHandler
 {
 public:
+	std::vector<Chunk> chunks;
+	std::vector<int> visibleChunks;
+
+	// This is how many chunk will be visible by the player
+	int visibleChunkSide = 15;
+
+	ChunkHandler();
 	ChunkHandler(float playerXPos, float playerZPos);
 	ChunkHandler(float playerXPos, float playerZPos, unsigned int seed);
 	~ChunkHandler();
 
 	void updateVisibleChunks(float playerXPos, float playerZPos);
+	void updatePlayerPosition(float playerXPos, float playerZPos);
+	float getHeightValue(float playerXPos, float playerZPos);
 private:
 	// Stores the position of the chunk and the index of the chunk in the chunk vector
 	std::map<std::pair<int, int>, int> worldmap;
-	std::vector<Chunk> chunks;
-	std::vector<int> visibleChunks;
+	std::pair<int, int> currentChunkIndex;
 
 	PerlinNoise perlin;
 
@@ -46,14 +55,14 @@ private:
 	unsigned int seed;
 
 	// Random variables used in the terrain generation
-	const int randomMin = 0;
-	const int randomMax = 100;
+	int randomMin = 0;
+	int randomMax = 100;
 
 	// This is how many chunk will be generated around the player
-	const int initialChunkSide = 5;
+	int initialChunkSide = 11;
 
-	// This is how many chunk will be visible by the player
-	const int visibleChunkSide = 3;
+	void generateChunk(int chunkX, int chunkZ);
+	void generateInitialChunks(int chunkX, int chunkZ);
 };
 
 #endif // !CHUNK_HANDLER_H

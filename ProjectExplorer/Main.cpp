@@ -25,6 +25,7 @@
 #include "PerlinNoise.h"
 //#include "BMath.h"
 #include "ChunkHandler.h"
+#include "Defines.h"
 
 // GLM Mathemtics
 #include <c:/opengl/glm/glm.hpp>
@@ -109,7 +110,6 @@ void treatInputs();
 void treatPlayerMovementKeys();
 void treatGameControlKeys();
 void treatStateChangingKeys();
-void Do_Movement();
 void updatePlayerVelocity(GLfloat dt);
 
 void lbSave_leftClick();
@@ -124,7 +124,7 @@ void pgsFreeFly(GLfloat dt);
 GLuint loadTexture(GLchar* path);
 void initRenderData();
 //void initTextRenderData();
-void RawRender(Shader &shader, GLint textureID, glm::vec3 color, std::vector<glm::vec3> blocks);
+void RawRender(Shader &shader, GLint textureID, glm::vec3 color, GLint blockTypeRequest);
 void Render();
 
 //std::tuple<GLfloat, GLfloat> uiTextDimension(std::string text, GLfloat x, GLfloat y, GLfloat scale);
@@ -135,14 +135,14 @@ void initializeWorldVectors();
 void initializeUI();
 
 // Camera
-Camera camera(glm::vec3(25.0f, 1.5f, 25.0f));
+Camera camera(glm::vec3(5000.0f, 1.8f, 5000.0f));
 bool keys[1024];
 GLfloat lastX = 400, lastY = 300;
 bool firstMouse = true;
 bool cursorFree = false;
 
 // Y is set to 0.0 because player will automatically get the Y position from the heightMap
-glm::vec3 playerPos(glm::vec3(2000.0f, 0.0f, 2000.0f));
+glm::vec3 playerPos(glm::vec3(5000.0f, 0.0f, 5000.0f));
 
 GLfloat deltaTime = 0.0f;
 GLfloat lastFrame = 0.0f;
@@ -151,7 +151,7 @@ std::vector<glm::vec3> grassBlocks;
 std::vector<glm::vec3> stoneBlocks;
 
 std::vector<glm::vec3> heightMapPos;
-std::vector<GLint> heightValue;
+//std::vector<GLint> heightValue;
 
 GLuint cubeVAO, cubeVBO;
 GLuint textVAO, textVBO;
@@ -192,6 +192,7 @@ Label lbLightStrength;
 Label lbYVelocity;
 Label lbMouseX;
 Label lbMouseY;
+Label lbWorldSize;
 
 Label lbSave;
 Label lbLoad;
@@ -199,6 +200,9 @@ Label lbExit;
 
 // Perlin Terrain Generator
 PerlinNoise perlin;
+
+// Chunks Handler
+ChunkHandler chunkHandler;
 
 // The MAIN function, from here we start our application and run our Game loop
 int main()
@@ -255,12 +259,6 @@ int main()
 	
 	// Create map and heightMap
 	initializeWorldVectors();
-
-	playerPos.x = 10.0f;
-	playerPos.z = 10.0f;
-
-	ChunkHandler chunkHandler(playerPos.x, playerPos.z, 0);
-	std::cin.get();
 
 	// Configure all interface related objects
 	initializeUI();
@@ -376,9 +374,10 @@ void pgsGravity(GLfloat dt)
 		}
 		else
 		{
-			GLint heightI = std::find(heightMapPos.begin(), heightMapPos.end(), glm::vec3(floor(playerPos.x), 0.0, floor(playerPos.z))) - heightMapPos.begin();
+			//GLint heightI = std::find(heightMapPos.begin(), heightMapPos.end(), glm::vec3(floor(playerPos.x), 0.0, floor(playerPos.z))) - heightMapPos.begin();
+			GLint heightValue = chunkHandler.getHeightValue(playerPos.x, playerPos.z);
 
-			if (playerPos.y > heightValue.at(heightI))
+			if (playerPos.y > heightValue)
 			{
 				if (gravityVelocity < maxGravityVelocity)
 				{
@@ -391,16 +390,13 @@ void pgsGravity(GLfloat dt)
 
 				playerPos.y -= gravityVelocity;
 			}
-			else
+			else	// Player touched the ground
 			{
-				//if (playerPos.y == heightValue.at(heightI))
-				//{
-					playerPos.y = heightValue.at(heightI);
+				playerPos.y = heightValue;
 
-					gravityVelocity = 0.05f;
+				gravityVelocity = 0.05f;
 
-					jumpEnable = true;
-				//}
+				jumpEnable = true;
 
 			}
 		}
@@ -493,39 +489,41 @@ void initializePerlinNoise()
 
 void initializeWorldVectors()
 {
-	grassBlocks.clear();
-	stoneBlocks.clear();
-	heightMapPos.clear();
-	heightValue.clear();
+	//grassBlocks.clear();
+	//stoneBlocks.clear();
+	//heightMapPos.clear();
+	//heightValue.clear();
 
 	auto start = std::chrono::high_resolution_clock::now();
 
-	for (int i = 0; i < mapSideSize - 1; i++)
-	{
-		for (int j = 0; j < mapSideSize - 1; j++)
-		{
-			//int randNum = randomMin + (rand() % (int)(randomMax - randomMin + 1));
+	chunkHandler = ChunkHandler(playerPos.x, playerPos.z, 0);
 
-			//GLfloat perlinX = bmath::norm(i, 0, 255);
-			//GLfloat perlinY = bmath::norm(j, 0, 255);
+	//for (int i = 0; i < mapSideSize - 1; i++)
+	//{
+	//	for (int j = 0; j < mapSideSize - 1; j++)
+	//	{
+	//		//int randNum = randomMin + (rand() % (int)(randomMax - randomMin + 1));
 
-			//GLfloat perlinValue = perlin.noise(perlinX, perlinY, 0.0f);
+	//		//GLfloat perlinX = bmath::norm(i, 0, 255);
+	//		//GLfloat perlinY = bmath::norm(j, 0, 255);
 
-			//GLfloat mappedValue = std::floor(bmath::map(perlinValue, 0.0f, 1.0f, 0.0f, 255.0f));
+	//		//GLfloat perlinValue = perlin.noise(perlinX, perlinY, 0.0f);
 
-			//heightMapPos.push_back(glm::vec3(i, 0.0, j));
-			//heightValue.push_back(mappedValue);
+	//		//GLfloat mappedValue = std::floor(bmath::map(perlinValue, 0.0f, 1.0f, 0.0f, 255.0f));
 
-			//if (randNum < 50)
-			//{
-			//	grassBlocks.push_back(glm::vec3(i + 0.5f, mappedValue, j + 0.5f));
-			//}
-			//else
-			//{
-			//	stoneBlocks.push_back(glm::vec3(i + 0.5f, mappedValue, j + 0.5f));
-			//}
-		}
-	}
+	//		//heightMapPos.push_back(glm::vec3(i, 0.0, j));
+	//		//heightValue.push_back(mappedValue);
+
+	//		//if (randNum < 50)
+	//		//{
+	//		//	grassBlocks.push_back(glm::vec3(i + 0.5f, mappedValue, j + 0.5f));
+	//		//}
+	//		//else
+	//		//{
+	//		//	stoneBlocks.push_back(glm::vec3(i + 0.5f, mappedValue, j + 0.5f));
+	//		//}
+	//	}
+	//}
 
 	auto finish = std::chrono::high_resolution_clock::now();
 	int mapBuildTime = std::chrono::duration_cast<std::chrono::milliseconds>(finish - start).count();
@@ -542,14 +540,15 @@ void initializeUI()
 	welcomeLabels.push_back(&lbWelcome);
 
 	// Create Information Labels
-	lbFPS			= Label("FPS: "						+ std::to_string(fps),					25.0f, 570.0f, 0.3f, fontArial.getCharacterSet(PLAIN));
-	lbPlayerX		= Label("Player X: "				+ std::to_string(camera.Position.x),	25.0f, 550.0f, 0.3f, fontArial.getCharacterSet(PLAIN));
-	lbPlayerY		= Label("Player Y: "				+ std::to_string(camera.Position.y),	25.0f, 530.0f, 0.3f, fontArial.getCharacterSet(PLAIN));
-	lbPlayerZ		= Label("Player Z: "				+ std::to_string(camera.Position.z),	25.0f, 510.0f, 0.3f, fontArial.getCharacterSet(PLAIN));
-	lbLightStrength = Label("Ambient Light Strength: "	+ std::to_string(strength),				25.0f, 490.0f, 0.3f, fontArial.getCharacterSet(PLAIN));
-	lbYVelocity		= Label("Y Velocity: "				+ std::to_string(gravityVelocity),		25.0f, 470.0f, 0.3f, fontArial.getCharacterSet(PLAIN));
-	lbMouseX		= Label("Mouse X: "					+ std::to_string(lastX),				25.0f, 450.0f, 0.3f, fontArial.getCharacterSet(PLAIN));
-	lbMouseY		= Label("Mouse Y: "					+ std::to_string(lastY),				25.0f, 430.0f, 0.3f, fontArial.getCharacterSet(PLAIN));
+	lbFPS			= Label("FPS: "						+ std::to_string(fps),							25.0f, 570.0f, 0.3f, fontArial.getCharacterSet(PLAIN));
+	lbPlayerX		= Label("Player X: "				+ std::to_string(camera.Position.x),			25.0f, 550.0f, 0.3f, fontArial.getCharacterSet(PLAIN));
+	lbPlayerY		= Label("Player Y: "				+ std::to_string(camera.Position.y),			25.0f, 530.0f, 0.3f, fontArial.getCharacterSet(PLAIN));
+	lbPlayerZ		= Label("Player Z: "				+ std::to_string(camera.Position.z),			25.0f, 510.0f, 0.3f, fontArial.getCharacterSet(PLAIN));
+	lbLightStrength = Label("Ambient Light Strength: "	+ std::to_string(strength),						25.0f, 490.0f, 0.3f, fontArial.getCharacterSet(PLAIN));
+	lbYVelocity		= Label("Y Velocity: "				+ std::to_string(gravityVelocity),				25.0f, 470.0f, 0.3f, fontArial.getCharacterSet(PLAIN));
+	lbMouseX		= Label("Mouse X: "					+ std::to_string(lastX),						25.0f, 450.0f, 0.3f, fontArial.getCharacterSet(PLAIN));
+	lbMouseY		= Label("Mouse Y: "					+ std::to_string(lastY),						25.0f, 430.0f, 0.3f, fontArial.getCharacterSet(PLAIN));
+	lbWorldSize		= Label("World Size: "				+ std::to_string(chunkHandler.chunks.size()),	25.0f, 410.0f, 0.3f, fontArial.getCharacterSet(PLAIN));
 
 	// Add Information Labels to their Label vector
 	informationLabels.push_back(&lbFPS);
@@ -560,6 +559,7 @@ void initializeUI()
 	informationLabels.push_back(&lbYVelocity);
 	informationLabels.push_back(&lbMouseX);
 	informationLabels.push_back(&lbMouseY);
+	informationLabels.push_back(&lbWorldSize);
 
 	// Create Menu Labels
 	lbSave = Label("Save", 350.0f, 570.0f, 0.5f, fontArial.getCharacterSet(currentCharacterSet));
@@ -644,8 +644,15 @@ void initRenderData()
 	glBindVertexArray(0);
 }
 
-void RawRender(Shader &shader, GLint textureID, glm::vec3 color, std::vector<glm::vec3> blocks)
+void RawRender(Shader &shader, GLint textureID, glm::vec3 color, GLint blockTypeRequest)
 {
+	int blockX;
+	int blockY;
+	int blockZ;
+	int blockType;
+
+	Chunk * chunkPtr;
+
 	shader.Use();
 	// Floor Cubes
 	glBindVertexArray(cubeVAO);
@@ -654,13 +661,38 @@ void RawRender(Shader &shader, GLint textureID, glm::vec3 color, std::vector<glm
 	GLint cubesColor = glGetUniformLocation(shader.Program, "inColor");
 	glUniform3f(cubesColor, color.r, color.g, color.b);
 
-	for (int i = 0; i < blocks.size(); i++)
+	for (int i = 0; i < chunkHandler.visibleChunks.size(); i++)
 	{
-		glm::mat4 model;
-		model = glm::translate(model, blocks.at(i));
-		glUniformMatrix4fv(glGetUniformLocation(shader.Program, "model"), 1, GL_FALSE, glm::value_ptr(model));
-		glDrawArrays(GL_TRIANGLES, 0, 36);
+		chunkPtr = &chunkHandler.chunks.at(chunkHandler.visibleChunks.at(i));
+		
+		for (int x = 0; x < chunkSize; x++)
+		{
+			for (int z = 0; z < chunkSize; z++)
+			{
+				int randNum = randomMin + (rand() % (int)(randomMax - randomMin + 1));
+
+				blockX = chunkPtr->x + x;
+				blockY = chunkPtr->blocksHeight[x][z];
+				blockZ = chunkPtr->z + z;
+				blockType = chunkPtr->blocksType[x][z];
+
+				if (blockType == blockTypeRequest)
+				{
+					glm::mat4 model;
+					model = glm::translate(model, glm::vec3(blockX + 0.5f, blockY, blockZ + 0.5f));
+					glUniformMatrix4fv(glGetUniformLocation(shader.Program, "model"), 1, GL_FALSE, glm::value_ptr(model));
+					glDrawArrays(GL_TRIANGLES, 0, 36);
+				}
+			}
+		}
 	}
+	//for (int i = 0; i < blocks.size(); i++)
+	//{
+	//	glm::mat4 model;
+	//	model = glm::translate(model, blocks.at(i));
+	//	glUniformMatrix4fv(glGetUniformLocation(shader.Program, "model"), 1, GL_FALSE, glm::value_ptr(model));
+	//	glDrawArrays(GL_TRIANGLES, 0, 36);
+	//}
 	
 	glBindVertexArray(0);
 }
@@ -672,8 +704,8 @@ void Render()
 		// Used to render as wireframe
 		//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
-		RawRender(shaderGEO, grassTexID, grassColor, grassBlocks);
-		RawRender(shaderGEO, stoneTexID, stoneColor, stoneBlocks);
+		RawRender(shaderGEO, grassTexID, grassColor, GRASS_ID);
+		RawRender(shaderGEO, stoneTexID, stoneColor, STONE_ID);
 
 		//glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
@@ -696,8 +728,8 @@ void Render()
 	}
 	else if (gs == WELCOME)
 	{
-		RawRender(shaderGEO, grassTexID, grassColor, grassBlocks);
-		RawRender(shaderGEO, stoneTexID, stoneColor, stoneBlocks);
+		RawRender(shaderGEO, grassTexID, grassColor, GRASS_ID);
+		RawRender(shaderGEO, stoneTexID, stoneColor, STONE_ID);
 
 		// Set OpenGL options
 		glEnable(GL_CULL_FACE);
@@ -717,8 +749,8 @@ void Render()
 	}
 	else if (gs == INFORMATION)
 	{
-		RawRender(shaderGEO, grassTexID, grassColor, grassBlocks);
-		RawRender(shaderGEO, stoneTexID, stoneColor, stoneBlocks);
+		RawRender(shaderGEO, grassTexID, grassColor, GRASS_ID);
+		RawRender(shaderGEO, stoneTexID, stoneColor, STONE_ID);
 
 		// Set OpenGL options
 		glEnable(GL_CULL_FACE);
@@ -738,8 +770,8 @@ void Render()
 	}
 	else if (gs == MENU)
 	{
-		RawRender(shaderGEO, grassTexID, grassColor, grassBlocks);
-		RawRender(shaderGEO, stoneTexID, stoneColor, stoneBlocks);
+		RawRender(shaderGEO, grassTexID, grassColor, GRASS_ID);
+		RawRender(shaderGEO, stoneTexID, stoneColor, STONE_ID);
 
 		// Set OpenGL options
 		glEnable(GL_CULL_FACE);
@@ -826,10 +858,15 @@ void treatPlayerMovementKeys()
 	playerPos.x = camera.Position.x;
 	playerPos.z = camera.Position.z;
 
+	chunkHandler.updatePlayerPosition(playerPos.x, playerPos.z);
+
 	// Update player position labels with new position values
 	lbPlayerX.setText("Player X: " + std::to_string(camera.Position.x));
 	lbPlayerY.setText("Player Y: " + std::to_string(camera.Position.y));
 	lbPlayerZ.setText("Player Z: " + std::to_string(camera.Position.z));
+
+	// Update world size label in case new chunks were added
+	lbWorldSize.setText("World Size: " + std::to_string(chunkHandler.chunks.size()));
 }
 
 void treatGameControlKeys()

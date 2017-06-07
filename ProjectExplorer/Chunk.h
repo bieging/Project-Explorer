@@ -8,7 +8,8 @@ const int chunkSize = 16;
 struct Chunk
 {
 	int x, z;
-	int blocks[chunkSize][chunkSize];
+	int blocksHeight[chunkSize][chunkSize];
+	int blocksType[chunkSize][chunkSize];
 
 	Chunk(int x, int z) { this->x = x; this->z = z; }
 };
