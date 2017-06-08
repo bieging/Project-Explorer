@@ -23,6 +23,9 @@ Increase player camera position as the blocks seem very big now
 
 Elevator ( Dynamic Heighmap test)
 
+Physics 1.2
+	Check if player is jumping while moving towards a wall. It can still move up and get to the block in case it passes the heightValue of that block
+
 Chunk and ChunkHandler (Important)
 
 Terrain 1

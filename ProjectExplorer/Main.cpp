@@ -66,8 +66,7 @@ bool spaceReleased = false;
 bool shiftReleased = false;
 
 bool jumpEnable = true;
-int jumpTime = 7;
-int jumpTimeCounter = jumpTime;
+int jumpTimeCounter = playerJumpTime;
 
 GLfloat runSpeedMultiplier = 3.0f;
 
@@ -92,7 +91,7 @@ enum GAME_STATE
 	INFORMATION
 };
 
-PLAYER_GRAVITY_STATE PGS = GRAVITY;
+PLAYER_GRAVITY_STATE pgs = GRAVITY;
 GAME_STATE gs = WELCOME;
 GAME_STATE lastGameState = WELCOME;
 
@@ -205,6 +204,9 @@ GLuint seed = 0;
 // Chunks Handler
 ChunkHandler chunkHandler;
 
+// Physics
+GLfloat playerLastY;
+
 // The MAIN function, from here we start our application and run our Game loop
 int main()
 {
@@ -264,7 +266,14 @@ int main()
 	// Configure all interface related objects
 	initializeUI();
 
+	// Initializes all vertices, VAOs and VBOs related to blocks
 	initRenderData();
+
+	// Initialize player's Y position
+	GLint heightValue = chunkHandler.getHeightValue(playerPos.x, playerPos.z);
+	playerPos.y = heightValue;
+	gravityVelocity = 0.05f;
+	playerLastY = playerPos.y;
 
 	// Load textures
 	stoneTexID = loadTexture("Textures/rockWire.png");
@@ -337,7 +346,7 @@ int main()
 
 void updatePlayerVelocity(GLfloat dt)
 {
-	switch (PGS)
+	switch (pgs)
 	{
 		case GRAVITY:
 			pgsGravity(dt);
@@ -390,13 +399,16 @@ void pgsGravity(GLfloat dt)
 
 				playerPos.y -= gravityVelocity;
 			}
-			else	// Player touched the ground
+			else if (playerPos.y > heightValue - 0.5f)	// Player touched the ground
 			{
 				playerPos.y = heightValue;
 
 				gravityVelocity = 0.05f;
 
 				jumpEnable = true;
+			}
+			else	// Player is trying to climb
+			{
 
 			}
 		}
@@ -421,7 +433,7 @@ void pgsGravity(GLfloat dt)
 			spacePressed = false;
 			spaceReleased = true;
 
-			jumpTimeCounter = jumpTime;
+			jumpTimeCounter = playerJumpTime;
 		}
 	}
 
@@ -488,50 +500,22 @@ void initializePerlinNoise()
 
 void initializeWorldVectors()
 {
-	//grassBlocks.clear();
-	//stoneBlocks.clear();
-	//heightMapPos.clear();
-	//heightValue.clear();
-
+	std::cout << "Initializing map, please wait" << std::endl;
 	auto start = std::chrono::high_resolution_clock::now();
 
 	chunkHandler = ChunkHandler(playerPos.x, playerPos.z, seed);
 
-	//for (int i = 0; i < mapSideSize - 1; i++)
-	//{
-	//	for (int j = 0; j < mapSideSize - 1; j++)
-	//	{
-	//		//int randNum = randomMin + (rand() % (int)(randomMax - randomMin + 1));
-
-	//		//GLfloat perlinX = bmath::norm(i, 0, 255);
-	//		//GLfloat perlinY = bmath::norm(j, 0, 255);
-
-	//		//GLfloat perlinValue = perlin.noise(perlinX, perlinY, 0.0f);
-
-	//		//GLfloat mappedValue = std::floor(bmath::map(perlinValue, 0.0f, 1.0f, 0.0f, 255.0f));
-
-	//		//heightMapPos.push_back(glm::vec3(i, 0.0, j));
-	//		//heightValue.push_back(mappedValue);
-
-	//		//if (randNum < 50)
-	//		//{
-	//		//	grassBlocks.push_back(glm::vec3(i + 0.5f, mappedValue, j + 0.5f));
-	//		//}
-	//		//else
-	//		//{
-	//		//	stoneBlocks.push_back(glm::vec3(i + 0.5f, mappedValue, j + 0.5f));
-	//		//}
-	//	}
-	//}
-
 	auto finish = std::chrono::high_resolution_clock::now();
-	int mapBuildTime = std::chrono::duration_cast<std::chrono::milliseconds>(finish - start).count();
-
-	std::cout << "Map took: " << std::to_string(mapBuildTime) << " to build" << std::endl;
+	int initializeTime = std::chrono::duration_cast<std::chrono::milliseconds>(finish - start).count();
+	std::cout << "Map took: " << std::to_string(initializeTime) << " miliseconds to initialize" << std::endl;
+	std::cout << std::endl;
 }
 
 void initializeUI()
 {
+	std::cout << "Initializing UI, please wait" << std::endl;
+	auto start = std::chrono::high_resolution_clock::now();
+
 	// Create Welcome Label
 	lbWelcome = Label("Welcome to Project Explorer", 100.0f, 300.0f, 1.0f, fontArial.getCharacterSet(PLAIN));
 
@@ -574,14 +558,18 @@ void initializeUI()
 	menuLabels.push_back(&lbSave);
 	menuLabels.push_back(&lbLoad);
 	menuLabels.push_back(&lbExit);
+
+	auto finish = std::chrono::high_resolution_clock::now();
+	int initializeTime = std::chrono::duration_cast<std::chrono::milliseconds>(finish - start).count();
+	std::cout << "UI took: " << std::to_string(initializeTime) << " miliseconds to initialize" << std::endl;
+	std::cout << std::endl;
 }
-
-#pragma endregion
-
-#pragma region "Render"
 
 void initRenderData()
 {
+	std::cout << "Initializing render data, please wait" << std::endl;
+	auto start = std::chrono::high_resolution_clock::now();
+
 	GLfloat cubeVertices[] =
 	{
 		// Positions          // Texture Coords
@@ -641,7 +629,17 @@ void initRenderData()
 	glEnableVertexAttribArray(1);
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
 	glBindVertexArray(0);
+
+	auto finish = std::chrono::high_resolution_clock::now();
+	int initializeTime = std::chrono::duration_cast<std::chrono::microseconds>(finish - start).count();
+	std::cout << "Render data took: " << std::to_string(initializeTime) << " microseconds to initialize" << std::endl;
+	std::cout << std::endl;
 }
+
+#pragma endregion
+
+#pragma region "Render"
+
 
 void RawRender(Shader &shader, GLint textureID, glm::vec3 color, GLint blockTypeRequest)
 {
@@ -832,6 +830,9 @@ void treatInputs()
 
 void treatPlayerMovementKeys()
 {
+	GLfloat lastCameraX = camera.Position.x;
+	GLfloat lastCameraZ = camera.Position.z;
+
 	// Camera controls
 	if (keys[GLFW_KEY_W])
 	{
@@ -854,18 +855,30 @@ void treatPlayerMovementKeys()
 		else				camera.ProcessKeyboard(RIGHT, deltaTime);
 	}
 
-	playerPos.x = camera.Position.x;
-	playerPos.z = camera.Position.z;
+	GLint heightValue = chunkHandler.getHeightValue(camera.Position.x, camera.Position.z);
 
-	chunkHandler.updatePlayerPosition(playerPos.x, playerPos.z);
+	// Player Wall Collision Physics Treatment
+	// todo - explain what is going on here
+	if (heightValue < (camera.Position.y - playerHeight + 0.5f))
+	{
+		playerPos.x = camera.Position.x;
+		playerPos.z = camera.Position.z;
 
-	// Update player position labels with new position values
-	lbPlayerX.setText("Player X: " + std::to_string(camera.Position.x));
-	lbPlayerY.setText("Player Y: " + std::to_string(camera.Position.y));
-	lbPlayerZ.setText("Player Z: " + std::to_string(camera.Position.z));
+		chunkHandler.updatePlayerPosition(playerPos.x, playerPos.z);
 
-	// Update world size label in case new chunks were added
-	lbWorldSize.setText("World Size: " + std::to_string(chunkHandler.chunks.size()));
+		// Update player position labels with new position values
+		lbPlayerX.setText("Player X: " + std::to_string(camera.Position.x));
+		lbPlayerY.setText("Player Y: " + std::to_string(camera.Position.y));
+		lbPlayerZ.setText("Player Z: " + std::to_string(camera.Position.z));
+
+		// Update world size label in case new chunks were added
+		lbWorldSize.setText("World Size: " + std::to_string(chunkHandler.chunks.size()));
+	}
+	else
+	{
+		camera.Position.x = lastCameraX;
+		camera.Position.z = lastCameraZ;
+	}
 }
 
 void treatGameControlKeys()
@@ -944,16 +957,16 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 	{
 		if (gs == ACTIVE)
 		{
-			switch (PGS)
+			switch (pgs)
 			{
 				case GRAVITY:
-					PGS = FIXED_H_FLY;
+					pgs = FIXED_H_FLY;
 					break;
 				case FIXED_H_FLY:
-					PGS = FREE_FLY;
+					pgs = FREE_FLY;
 					break;
 				case FREE_FLY:
-					PGS = GRAVITY;
+					pgs = GRAVITY;
 					break;
 				default:
 					break;
@@ -968,7 +981,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 	{
 		if (gs == ACTIVE || gs == INFORMATION)
 		{
-			switch (PGS)
+			switch (pgs)
 			{
 				case GRAVITY:
 					if (jumpEnable)
@@ -1003,7 +1016,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 	{
 		if (gs == ACTIVE || gs == INFORMATION)
 		{
-			switch (PGS)
+			switch (pgs)
 			{
 				case GRAVITY:
 					spacePressed = false;

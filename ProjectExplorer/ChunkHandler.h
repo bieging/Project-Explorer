@@ -63,7 +63,7 @@ private:
 	int playerLastZ = 0;
 
 	// This is how many chunk will be generated around the player
-	int initialChunkSide = 11;
+	int initialChunkSide = 15;
 
 	// This is how many chunk will be visible by the player
 	int visibleChunkSide = 5;
