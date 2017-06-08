@@ -97,12 +97,6 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="Shaders\depth.frag">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="Shaders\depth.vs">
-      <Filter>Shaders</Filter>
-    </None>
     <None Include="Shaders\text.frag">
       <Filter>Shaders</Filter>
     </None>
@@ -111,6 +105,18 @@
     </None>
     <None Include="Docs\Issues Annotations.md">
       <Filter>Docs</Filter>
+    </None>
+    <None Include="Shaders\geo.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\geo.vs">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\lamp.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\lamp.vs">
+      <Filter>Shaders</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>

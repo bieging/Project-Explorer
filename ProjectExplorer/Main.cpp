@@ -17,6 +17,7 @@
 #include <c:/opengl/IRRKLANG/irrKlang.h>
 
 // GL includes
+#include "Main.h"
 #include "Shader.h"
 #include "Camera.h"
 #include "Renderer.h"
@@ -65,7 +66,6 @@ bool shiftPressed = false;
 bool spaceReleased = false;
 bool shiftReleased = false;
 
-bool jumpEnable = true;
 int jumpTimeCounter = playerJumpTime;
 
 GLfloat runSpeedMultiplier = 3.0f;
@@ -131,6 +131,10 @@ void uiCollision();
 void initializePerlinNoise();
 void initializeWorldVectors();
 void initializeUI();
+
+float map(float value,
+	float start1, float stop1,
+	float start2, float stop2);
 
 // Camera
 Camera camera(glm::vec3(10.0f, playerHeight, 10.0f));
@@ -299,8 +303,10 @@ int main()
 		timeValue = glfwGetTime();
 		strength = abs(sin(timeValue / 20));
 
-		if (strength <= 0.1)
-			strength = 0.1;
+		//if (strength <= 0.1)
+		//	strength = 0.1;
+		//if (strength > 0.7)
+			strength = 0.3;
 
 		updatePlayerVelocity(deltaTime);
 
@@ -317,12 +323,17 @@ int main()
 
 		// Draw objects
 		view = camera.GetViewMatrix();
-		projection = glm::perspective(camera.Zoom, (float)screenWidth / (float)screenHeight, 0.1f, 300.0f);
+		projection = glm::perspective(camera.Zoom, (float)screenWidth / (float)screenHeight, 0.1f, 750.0f);
 
 		shaderGEO.Use();
 		glUniformMatrix4fv(glGetUniformLocation(shaderGEO.Program, "view"), 1, GL_FALSE, glm::value_ptr(view));
 		glUniformMatrix4fv(glGetUniformLocation(shaderGEO.Program, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
 		glUniform1f(glGetUniformLocation(shaderGEO.Program, "ambStr"), strength);
+
+		shaderLAMP.Use();
+		glUniformMatrix4fv(glGetUniformLocation(shaderLAMP.Program, "view"), 1, GL_FALSE, glm::value_ptr(view));
+		glUniformMatrix4fv(glGetUniformLocation(shaderLAMP.Program, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+		glUniform1f(glGetUniformLocation(shaderLAMP.Program, "ambStr"), strength);
 		
 		// Draw geometry and text
 		Render();
@@ -408,7 +419,7 @@ void pgsGravity(GLfloat dt)
 
 				gravityVelocity = 0.05f;
 
-				jumpEnable = true;
+				playerJumpEnable = true;
 			}
 		}
 	}
@@ -571,48 +582,48 @@ void initRenderData()
 
 	GLfloat cubeVertices[] =
 	{
-		// Positions          // Texture Coords
-		-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
-		0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
-		0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-		0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-		-0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-		-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+		// Positions          // Tex	   // Normals
+		-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,  0.0f,  0.0f, -1.0f,
+		 0.5f, -0.5f, -0.5f,  1.0f, 0.0f,  0.0f,  0.0f, -1.0f,
+		 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,  0.0f,  0.0f, -1.0f,
+		 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,  0.0f,  0.0f, -1.0f,
+		-0.5f,  0.5f, -0.5f,  0.0f, 1.0f,  0.0f,  0.0f, -1.0f,
+		-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,  0.0f,  0.0f, -1.0f,
 
-		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-		0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-		0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-		0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-		-0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
-		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,  0.0f,  0.0f, 1.0f,
+		 0.5f, -0.5f,  0.5f,  1.0f, 0.0f,  0.0f,  0.0f, 1.0f,
+		 0.5f,  0.5f,  0.5f,  1.0f, 1.0f,  0.0f,  0.0f, 1.0f,
+		 0.5f,  0.5f,  0.5f,  1.0f, 1.0f,  0.0f,  0.0f, 1.0f,
+		-0.5f,  0.5f,  0.5f,  0.0f, 1.0f,  0.0f,  0.0f, 1.0f,
+		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,  0.0f,  0.0f, 1.0f,
 
-		-0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-		-0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-		-0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+		-0.5f,  0.5f,  0.5f,  1.0f, 0.0f, -1.0f,  0.0f,  0.0f,
+		-0.5f,  0.5f, -0.5f,  1.0f, 1.0f, -1.0f,  0.0f,  0.0f,
+		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f, -1.0f,  0.0f,  0.0f,
+		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f, -1.0f,  0.0f,  0.0f,
+		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f, -1.0f,  0.0f,  0.0f,
+		-0.5f,  0.5f,  0.5f,  1.0f, 0.0f, -1.0f,  0.0f,  0.0f,
 
-		0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-		0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-		0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-		0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-		0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-		0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+		 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,  1.0f,  0.0f,  0.0f,
+		 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,  1.0f,  0.0f,  0.0f,
+		 0.5f, -0.5f, -0.5f,  0.0f, 1.0f,  1.0f,  0.0f,  0.0f,
+		 0.5f, -0.5f, -0.5f,  0.0f, 1.0f,  1.0f,  0.0f,  0.0f,
+		 0.5f, -0.5f,  0.5f,  0.0f, 0.0f,  1.0f,  0.0f,  0.0f,
+		 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,  1.0f,  0.0f,  0.0f,
 
-		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-		0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
-		0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-		0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,  0.0f, -1.0f,  0.0f,
+		 0.5f, -0.5f, -0.5f,  1.0f, 1.0f,  0.0f, -1.0f,  0.0f,
+		 0.5f, -0.5f,  0.5f,  1.0f, 0.0f,  0.0f, -1.0f,  0.0f,
+		 0.5f, -0.5f,  0.5f,  1.0f, 0.0f,  0.0f, -1.0f,  0.0f,
+		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,  0.0f, -1.0f,  0.0f,
+		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,  0.0f, -1.0f,  0.0f,
 
-		-0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-		0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-		0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-		0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-		-0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
-		-0.5f,  0.5f, -0.5f,  0.0f, 1.0f
+		-0.5f,  0.5f, -0.5f,  0.0f, 1.0f,  0.0f,  1.0f,  0.0f,
+		 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,  0.0f,  1.0f,  0.0f,
+		 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,  0.0f,  1.0f,  0.0f,
+		 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,  0.0f,  1.0f,  0.0f,
+		-0.5f,  0.5f,  0.5f,  0.0f, 0.0f,  0.0f,  1.0f,  0.0f,
+		-0.5f,  0.5f, -0.5f,  0.0f, 1.0f,  0.0f,  1.0f,  0.0f
 	};
 
 	// Setup cube VAO
@@ -638,17 +649,21 @@ void initRenderData()
 	glBufferData(GL_ARRAY_BUFFER, sizeof(cubeVertices), &cubeVertices, GL_STATIC_DRAW);
 
 	glBindVertexArray(cubeVAO);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)0);
 	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)0);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
 	glEnableVertexAttribArray(1);
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)(5 * sizeof(GLfloat)));
+	glEnableVertexAttribArray(2);
 	glBindVertexArray(0);
 
 	glBindVertexArray(lightVAO);
 	// we only need to bind to the VBO, the container's VBO's data already contains the correct data.
 	// set the vertex attributes (only position data for our lamp)
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)0);
 	glEnableVertexAttribArray(0);
+	//glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
+	//glEnableVertexAttribArray(1);
 	glBindVertexArray(0);
 
 	//// Instancing test
@@ -694,8 +709,27 @@ void RawRender(Shader &shader, GLint textureID, glm::vec3 color, GLint blockType
 
 	Chunk * chunkPtr;
 
+	// Draw sun
+	shaderLAMP.Use();
+	glBindTexture(GL_TEXTURE_2D, 0);
+	glBindVertexArray(lightVAO);
+
+	GLfloat sunX = sin(timeValue / 10);
+	GLfloat sunY = cos(timeValue / 10);
+
+	sunX = map(sunX, 0, 1, 0, 500);
+	sunY = map(sunY, 0, 1, 0, 500);
+
+	lightPos = glm::vec3(sunX + playerPos.x, sunY + playerPos.y, playerPos.z);
+
+	glm::mat4 model = glm::mat4();
+	model = glm::translate(model, lightPos);
+	model = glm::scale(model, glm::vec3(25.0f));
+	glUniformMatrix4fv(glGetUniformLocation(shaderLAMP.Program, "model"), 1, GL_FALSE, glm::value_ptr(model));
+	glDrawArrays(GL_TRIANGLES, 0, 36);
+
 	shader.Use();
-	// Floor Cubes
+	// Draw worldmap
 	glBindVertexArray(cubeVAO);
 	glBindTexture(GL_TEXTURE_2D, textureID);  // We omit the glActiveTexture part since TEXTURE0 is already the default active texture unit. (sampler used in fragment is set to 0 as well as default)		
 
@@ -703,6 +737,10 @@ void RawRender(Shader &shader, GLint textureID, glm::vec3 color, GLint blockType
 	glUniform3f(shObjectColor, color.r, color.g, color.b);
 	GLint shLightColor = glGetUniformLocation(shader.Program, "lightColor");
 	glUniform3f(shLightColor, lightColor.r, lightColor.g, lightColor.b);
+	GLint lightPosLoc = glGetUniformLocation(shader.Program, "lightPos");
+	glUniform3f(lightPosLoc, lightPos.x, lightPos.y, lightPos.z);
+	GLint viewPosLoc = glGetUniformLocation(shader.Program, "viewPos");
+	glUniform3f(viewPosLoc, camera.Position.x, camera.Position.y, camera.Position.z);
 
 	//glDrawArraysInstanced(GL_TRIANGLES, 0, 36, chunkHandler.numberOfVisibleCubes);
 	//glBindVertexArray(0);
@@ -735,17 +773,15 @@ void RawRender(Shader &shader, GLint textureID, glm::vec3 color, GLint blockType
 		}
 	}
 
-	glBindTexture(GL_TEXTURE_2D, 0);
 	glBindVertexArray(0);
+}
 
-	//for (int i = 0; i < blocks.size(); i++)
-	//{
-	//	glm::mat4 model;
-	//	model = glm::translate(model, blocks.at(i));
-	//	glUniformMatrix4fv(glGetUniformLocation(shader.Program, "model"), 1, GL_FALSE, glm::value_ptr(model));
-	//	glDrawArrays(GL_TRIANGLES, 0, 36);
-	//}
-	
+// todo - create comment for this
+float map(float value,
+	float start1, float stop1,
+	float start2, float stop2)
+{
+	return start2 + (stop2 - start2) * ((value - start1) / (stop1 - start1));
 }
 
 void Render()
@@ -849,18 +885,7 @@ void Render()
 		glDisable(GL_CULL_FACE);
 	}
 
-	// Draw lamp
-	// todo - move this elsewhere
-	shaderLAMP.Use();
-	glUniformMatrix4fv(glGetUniformLocation(shaderLAMP.Program, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
-	glUniformMatrix4fv(glGetUniformLocation(shaderLAMP.Program, "view"), 1, GL_FALSE, glm::value_ptr(view));
-	glm::mat4 model = glm::mat4();
-	model = glm::translate(model, lightPos);
-	model = glm::scale(model, glm::vec3(100.2f)); // a smaller cube
-	glUniformMatrix4fv(glGetUniformLocation(shaderLAMP.Program, "model"), 1, GL_FALSE, glm::value_ptr(model));
 
-	glBindVertexArray(lightVAO);
-	glDrawArrays(GL_TRIANGLES, 0, 36);
 
 	// Swap the buffers
 	glfwSwapBuffers(window);
@@ -1051,10 +1076,10 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 			switch (pgs)
 			{
 				case GRAVITY:
-					if (jumpEnable)
+					if (playerJumpEnable)
 					{
 						spacePressed = true;
-						jumpEnable = false;
+						playerJumpEnable = false;
 					}
 					break;
 

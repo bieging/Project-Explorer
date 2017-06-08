@@ -17,6 +17,13 @@ Sequence
 	Instancing
 	Tinker more with terrain generation ( sand, water, trees and vegetation, octaves )
 
+Bugs
+	ChunkHandler's updateVisibleChunks is not updating correctly visible chunks on negative chunks. Probably an issue with negatives and visibleChunkSide ( Which is always possible )
+
+	When the sun is on the horizon, block faces facing it directly should get dark as soon as the sun sets, but as their angle to the sun is minimal, they are very bright until the sun gets to X == playerPos.x
+
+	Check out why generating terraing with a higher chunkSize ( Tested with chunkSize = 32 ) yields in a strange hole in every chunk
+
 Later
 
 Increase player camera position as the blocks seem very big now
@@ -64,7 +71,6 @@ Terrain/World 1
 		Put stones only higher than determined height
 
 Terrain/World 1.1
-	Check out why generating terraing with a higher chunkSize yields in a strange hole in every chunk
 	Check out noise generation used by this video: https://www.youtube.com/watch?v=GTAqjyG2oOc
 
 Terrain/World 1.2

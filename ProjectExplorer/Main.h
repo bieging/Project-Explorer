@@ -1,4 +1,10 @@
+#ifndef MAIN_H
+#define MAIN_H
+
 #pragma once
+
+//#include "BMath.h"
+
 class Main
 {
 public:
@@ -6,3 +12,4 @@ public:
 	~Main();
 };
 
+#endif // !MAIN_H
