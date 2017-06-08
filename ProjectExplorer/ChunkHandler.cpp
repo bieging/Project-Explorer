@@ -5,6 +5,10 @@ ChunkHandler::ChunkHandler() {}
 
 ChunkHandler::ChunkHandler(float playerXPos, float playerZPos)
 {
+	numberOfVisibleCubes = chunkSize * chunkSize * visibleChunkSide * visibleChunkSide;
+
+	translations = new glm::mat4[numberOfVisibleCubes];
+
 	playerLastX = playerXPos;
 	playerLastZ = playerZPos;
 
@@ -65,6 +69,10 @@ ChunkHandler::ChunkHandler(float playerXPos, float playerZPos)
 
 ChunkHandler::ChunkHandler(float playerXPos, float playerZPos, unsigned int seed)
 {
+	numberOfVisibleCubes = chunkSize * chunkSize * visibleChunkSide * visibleChunkSide;
+
+	translations = new glm::mat4[numberOfVisibleCubes];
+
 	playerLastX = playerXPos;
 	playerLastZ = playerZPos;
 
@@ -114,7 +122,7 @@ ChunkHandler::ChunkHandler(float playerXPos, float playerZPos, unsigned int seed
 					GLfloat perlinValue = this->perlin.noise(perlinX, perlinZ, 0.0f);
 
 					// Map absolute x and z positions back to 0-255 range
-					GLfloat mappedValue = std::floor(bmath::map(perlinValue, 0.0f, 1.0f, 0.0f, 255.0f));
+					GLfloat mappedValue = std::floor(bmath::map(perlinValue, 0.0f, 1.0f, 0.0f, 383.0f));
 
 					// Add height value to block
 					chunks.back().blocksHeight[x][z] = mappedValue;
@@ -131,6 +139,7 @@ ChunkHandler::ChunkHandler(float playerXPos, float playerZPos, unsigned int seed
 
 ChunkHandler::~ChunkHandler()
 {
+	//delete[] translations;
 }
 
 void ChunkHandler::updateVisibleChunks(float playerXPos, float playerZPos)
@@ -171,6 +180,8 @@ void ChunkHandler::updateVisibleChunks(float playerXPos, float playerZPos)
 			}
 		}
 	}
+
+	//populateTranslationsArray();
 }
 
 void ChunkHandler::updatePlayerPosition(float playerXPos, float playerZPos)
@@ -231,6 +242,10 @@ void ChunkHandler::setVisibleChunkSid(int newVisibleChunkSide)
 {
 	visibleChunkSide = newVisibleChunkSide;
 
+	numberOfVisibleCubes = chunkSize * chunkSize * visibleChunkSide * visibleChunkSide;
+
+	//translations = new glm::mat4[numberOfVisibleCubes];
+
 	updateVisibleChunks(playerLastX, playerLastZ);
 }
 
@@ -271,4 +286,42 @@ void ChunkHandler::generateChunk(int chunkXIndex, int chunkZIndex)
 void ChunkHandler::generateInitialChunks(int chunkX, int chunkZ)
 {
 
+}
+
+void ChunkHandler::populateTranslationsArray()
+{
+	// Used for instancing
+	int blockX;
+	int blockY;
+	int blockZ;
+	int blockType;
+	int translationIndex = 0;
+
+	glm::mat4 model;
+
+	Chunk * chunkPtr;
+
+	for (int i = 0; i < visibleChunks.size(); i++)
+	{
+		chunkPtr = &chunks.at(visibleChunks.at(i));
+
+		for (int x = 0; x < chunkSize; x++)
+		{
+			for (int z = 0; z < chunkSize; z++)
+			{
+				int randNum = randomMin + (rand() % (int)(randomMax - randomMin + 1));
+
+				blockX = chunkPtr->x + x + 0.5f;
+				blockY = chunkPtr->blocksHeight[x][z];
+				blockZ = chunkPtr->z + z + 0.5f;
+				blockType = chunkPtr->blocksType[x][z];
+
+				model = glm::translate(model, glm::vec3(blockX, blockY, blockZ));
+
+				translations[translationIndex] = model;
+
+				translationIndex++;
+			}
+		}
+	}
 }

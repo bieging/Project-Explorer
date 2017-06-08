@@ -11,6 +11,8 @@
 
 // GLM Mathemtics
 #include <c:/opengl/glm/glm.hpp>
+#include <c:/opengl/glm/gtc/matrix_transform.hpp>
+#include <c:/opengl/glm/gtc/type_ptr.hpp>
 
 
 class PerlinNoise

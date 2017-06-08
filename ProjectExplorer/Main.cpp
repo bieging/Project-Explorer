@@ -97,7 +97,6 @@ GAME_STATE lastGameState = WELCOME;
 
 // Player
 GLfloat gravityVelocity = 0.05f;
-GLfloat maxGravityVelocity = 0.3;
 
 // Function prototypes
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
@@ -134,7 +133,7 @@ void initializeWorldVectors();
 void initializeUI();
 
 // Camera
-Camera camera(glm::vec3(10.0f, 1.8f, 10.0f));
+Camera camera(glm::vec3(10.0f, playerHeight, 10.0f));
 bool keys[1024];
 GLfloat lastX = 400, lastY = 300;
 bool firstMouse = true;
@@ -153,6 +152,7 @@ std::vector<glm::vec3> heightMapPos;
 //std::vector<GLint> heightValue;
 
 GLuint cubeVAO, cubeVBO;
+GLuint lightVAO;	// Use cubeVBO
 GLuint textVAO, textVBO;
 
 GLuint stoneTexID;
@@ -163,6 +163,7 @@ glm::vec3 grassColor = glm::vec3(0.2, 0.7, 0.2);
 
 // Shaders
 Shader shaderGEO;
+Shader shaderLAMP;
 Shader shaderTXT;
 
 // Global lighting vars
@@ -242,7 +243,8 @@ int main()
 	glDepthFunc(GL_LESS); // Set to always pass the depth test (same effect as glDisable(GL_DEPTH_TEST))
 
 	// Setup and compile our shaders
-	shaderGEO.init("Shaders/depth.vs", "Shaders/depth.frag");
+	shaderGEO.init("Shaders/geo.vs", "Shaders/geo.frag");
+	shaderLAMP.init("Shaders/lamp.vs", "Shaders/lamp.frag");
 	shaderTXT.init("Shaders/text.vs", "Shaders/text.frag");
 
 	glm::mat4 projection = glm::ortho(0.0f, static_cast<GLfloat>(screenWidth), 0.0f, static_cast<GLfloat>(screenHeight));
@@ -312,16 +314,17 @@ int main()
 		// Clear the colorbuffer
 		glClearColor(strength, strength, strength, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		
+
 		// Draw objects
+		view = camera.GetViewMatrix();
+		projection = glm::perspective(camera.Zoom, (float)screenWidth / (float)screenHeight, 0.1f, 300.0f);
+
 		shaderGEO.Use();
-		glm::mat4 view = camera.GetViewMatrix();
-		glm::mat4 projection = glm::perspective(camera.Zoom, (float)screenWidth / (float)screenHeight, 0.1f, 300.0f);
-		
 		glUniformMatrix4fv(glGetUniformLocation(shaderGEO.Program, "view"), 1, GL_FALSE, glm::value_ptr(view));
 		glUniformMatrix4fv(glGetUniformLocation(shaderGEO.Program, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
 		glUniform1f(glGetUniformLocation(shaderGEO.Program, "ambStr"), strength);
-
+		
+		// Draw geometry and text
 		Render();
 
 		auto finish = std::chrono::high_resolution_clock::now();
@@ -372,7 +375,7 @@ void pgsGravity(GLfloat dt)
 			if (gravityVelocity >= 0)
 			{
 				// This softly stops the player after stops the jump command
-				gravityVelocity -= 0.75f * dt;
+				gravityVelocity -= playerJumpAcceleration * dt;
 				playerPos.y += gravityVelocity;
 			}
 			else
@@ -390,7 +393,7 @@ void pgsGravity(GLfloat dt)
 			{
 				if (gravityVelocity < maxGravityVelocity)
 				{
-					gravityVelocity += 0.2 * dt;
+					gravityVelocity += gravityAcceleration * dt;
 				}
 				else
 				{
@@ -399,17 +402,13 @@ void pgsGravity(GLfloat dt)
 
 				playerPos.y -= gravityVelocity;
 			}
-			else if (playerPos.y > heightValue - 0.5f)	// Player touched the ground
+			else	// Player touched the ground
 			{
 				playerPos.y = heightValue;
 
 				gravityVelocity = 0.05f;
 
 				jumpEnable = true;
-			}
-			else	// Player is trying to climb
-			{
-
 			}
 		}
 	}
@@ -437,7 +436,7 @@ void pgsGravity(GLfloat dt)
 		}
 	}
 
-	camera.Position.y = playerPos.y + 1.8f;
+	camera.Position.y = playerPos.y + playerHeight;
 }
 
 void pgsFixedHFly(GLfloat dt)
@@ -451,7 +450,7 @@ void pgsFixedHFly(GLfloat dt)
 		playerPos.y -= 2 * dt;
 	}
 
-	camera.Position.y = playerPos.y + 1.8f;
+	camera.Position.y = playerPos.y + playerHeight;
 }
 
 void pgsFreeFly(GLfloat dt)
@@ -617,7 +616,22 @@ void initRenderData()
 	};
 
 	// Setup cube VAO
+	//glGenVertexArrays(1, &cubeVAO);
+	//glGenBuffers(1, &cubeVBO);
+
+	//glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);
+	//glBufferData(GL_ARRAY_BUFFER, sizeof(cubeVertices), &cubeVertices, GL_STATIC_DRAW);
+
+	//glBindVertexArray(cubeVAO);
+	//glEnableVertexAttribArray(0);
+	//glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)0);
+	//glEnableVertexAttribArray(1);
+	//glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
+	//glBindVertexArray(0);
+
+
 	glGenVertexArrays(1, &cubeVAO);
+	glGenVertexArrays(1, &lightVAO);
 	glGenBuffers(1, &cubeVBO);
 
 	glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);
@@ -630,6 +644,37 @@ void initRenderData()
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
 	glBindVertexArray(0);
 
+	glBindVertexArray(lightVAO);
+	// we only need to bind to the VBO, the container's VBO's data already contains the correct data.
+	// set the vertex attributes (only position data for our lamp)
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)0);
+	glEnableVertexAttribArray(0);
+	glBindVertexArray(0);
+
+	//// Instancing test
+	//unsigned int buffer;
+	//glGenBuffers(1, &buffer);
+	//glBindBuffer(GL_ARRAY_BUFFER, buffer);
+	//glBufferData(GL_ARRAY_BUFFER, chunkHandler.numberOfVisibleCubes * sizeof(glm::mat4), &chunkHandler.translations[0], GL_STATIC_DRAW);
+	//glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+	//// vertex Attributes
+	//GLsizei vec4Size = sizeof(glm::vec4);
+	//glEnableVertexAttribArray(2);
+	//glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, (void*)0);
+	//glEnableVertexAttribArray(3);
+	//glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, (void*)(vec4Size));
+	//glEnableVertexAttribArray(4);
+	//glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, (void*)(2 * vec4Size));
+	//glEnableVertexAttribArray(5);
+	//glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, (void*)(3 * vec4Size));
+
+	//glVertexAttribDivisor(2, 1);
+	//glVertexAttribDivisor(3, 1);
+	//glVertexAttribDivisor(4, 1);
+	//glVertexAttribDivisor(5, 1);
+	//glBindVertexArray(0);
+
 	auto finish = std::chrono::high_resolution_clock::now();
 	int initializeTime = std::chrono::duration_cast<std::chrono::microseconds>(finish - start).count();
 	std::cout << "Render data took: " << std::to_string(initializeTime) << " microseconds to initialize" << std::endl;
@@ -639,7 +684,6 @@ void initRenderData()
 #pragma endregion
 
 #pragma region "Render"
-
 
 void RawRender(Shader &shader, GLint textureID, glm::vec3 color, GLint blockTypeRequest)
 {
@@ -655,8 +699,13 @@ void RawRender(Shader &shader, GLint textureID, glm::vec3 color, GLint blockType
 	glBindVertexArray(cubeVAO);
 	glBindTexture(GL_TEXTURE_2D, textureID);  // We omit the glActiveTexture part since TEXTURE0 is already the default active texture unit. (sampler used in fragment is set to 0 as well as default)		
 
-	GLint cubesColor = glGetUniformLocation(shader.Program, "inColor");
-	glUniform3f(cubesColor, color.r, color.g, color.b);
+	GLint shObjectColor = glGetUniformLocation(shader.Program, "objectColor");
+	glUniform3f(shObjectColor, color.r, color.g, color.b);
+	GLint shLightColor = glGetUniformLocation(shader.Program, "lightColor");
+	glUniform3f(shLightColor, lightColor.r, lightColor.g, lightColor.b);
+
+	//glDrawArraysInstanced(GL_TRIANGLES, 0, 36, chunkHandler.numberOfVisibleCubes);
+	//glBindVertexArray(0);
 
 	for (int i = 0; i < chunkHandler.visibleChunks.size(); i++)
 	{
@@ -676,13 +725,19 @@ void RawRender(Shader &shader, GLint textureID, glm::vec3 color, GLint blockType
 				if (blockType == blockTypeRequest)
 				{
 					glm::mat4 model;
+					//model = glm::rotate(model, (float)glfwGetTime() * glm::radians(50.0f), glm::vec3(0.5f, 1.0f, 0.0f));
 					model = glm::translate(model, glm::vec3(blockX + 0.5f, blockY, blockZ + 0.5f));
+					//model = glm::scale(model, glm::vec3(0.5f, 0.5f, 0.5f));
 					glUniformMatrix4fv(glGetUniformLocation(shader.Program, "model"), 1, GL_FALSE, glm::value_ptr(model));
 					glDrawArrays(GL_TRIANGLES, 0, 36);
 				}
 			}
 		}
 	}
+
+	glBindTexture(GL_TEXTURE_2D, 0);
+	glBindVertexArray(0);
+
 	//for (int i = 0; i < blocks.size(); i++)
 	//{
 	//	glm::mat4 model;
@@ -691,7 +746,6 @@ void RawRender(Shader &shader, GLint textureID, glm::vec3 color, GLint blockType
 	//	glDrawArrays(GL_TRIANGLES, 0, 36);
 	//}
 	
-	glBindVertexArray(0);
 }
 
 void Render()
@@ -794,6 +848,19 @@ void Render()
 		glDisable(GL_BLEND);
 		glDisable(GL_CULL_FACE);
 	}
+
+	// Draw lamp
+	// todo - move this elsewhere
+	shaderLAMP.Use();
+	glUniformMatrix4fv(glGetUniformLocation(shaderLAMP.Program, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+	glUniformMatrix4fv(glGetUniformLocation(shaderLAMP.Program, "view"), 1, GL_FALSE, glm::value_ptr(view));
+	glm::mat4 model = glm::mat4();
+	model = glm::translate(model, lightPos);
+	model = glm::scale(model, glm::vec3(100.2f)); // a smaller cube
+	glUniformMatrix4fv(glGetUniformLocation(shaderLAMP.Program, "model"), 1, GL_FALSE, glm::value_ptr(model));
+
+	glBindVertexArray(lightVAO);
+	glDrawArrays(GL_TRIANGLES, 0, 36);
 
 	// Swap the buffers
 	glfwSwapBuffers(window);

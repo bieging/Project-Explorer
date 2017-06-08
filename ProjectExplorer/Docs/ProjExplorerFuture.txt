@@ -10,16 +10,44 @@ Create issues with this sections
 Sequence
 	ok - Finish Selfmade Interface 1
 	ok - Chunk and Chunk Loader
-	Instancing
 	Sun ( Day and Night cycle with Diffuse lighting )
 	Save worldmap to file
 	Load worldmap from file
 	Ray-Picking ( Object interaction )
+	Instancing
 	Tinker more with terrain generation ( sand, water, trees and vegetation, octaves )
 
 Later
 
 Increase player camera position as the blocks seem very big now
+
+Code Improvement 1.0
+	Create pointers to objects instead of the object itself ( If in doubt, check Breakout to see how it's done )
+
+Code Improvement 1.1
+	Following that idea of having a different function to handle each type of movement using the bool key[] array. Create a bool action[] and use check for this action in a similar way I'm doing it currently. Try to use a std::pair<bool, bool>
+
+Code Improvement 1.2
+	Create game class
+	Get a similar structure from Breakout
+	Command game object through main class
+
+Code Improvement 1.3
+	Create player class
+	Will have everything related to the player ( Vars and functions )
+
+Trees 1.0
+	Select random positions and add this positions to the trees vector
+	A tree object is composed of blocks which have the position of the logs and the position of the leaves
+	Cannot be placed on stone
+
+Trees 1.1
+	Try to create a little randomness to the tree's format. Maybe pre-create various trees, although this would not be an optimal solution
+	
+World 1.1
+	Test the following and check which one is better
+		Chose wether stone or grass based on the noise value ( between 0-1 )
+		Put stones only higher than determined height
 
 Elevator ( Dynamic Heighmap test)
 
@@ -28,22 +56,32 @@ Physics 1.2
 
 Chunk and ChunkHandler (Important)
 
-Terrain 1
+Terrain/World 1
 	Create sand blocks below a certain height
 
-Terrain 1.1
+	Test the following and check which one is better
+		Chose wether stone or grass based on the noise value ( between 0-1 )
+		Put stones only higher than determined height
+
+Terrain/World 1.1
+	Check out why generating terraing with a higher chunkSize yields in a strange hole in every chunk
 	Check out noise generation used by this video: https://www.youtube.com/watch?v=GTAqjyG2oOc
 
-Terrain 2
-	Create water blocks a few blocks below sand blocks
+Terrain/World 1.2
+	Create water blocks a few blocks below sand blocks ( Water will not affect the heightmap )
+	Condition to add water - if (currentY > heightValue && currentY <= waterHeightThreshold)
 	Sand blocks should still be the floor
 	Player can go through water ( as standard )
 
-Terrain 3
+Terrain/World 1.3
+	When creating blocks in very high positions, create blocks below them until there's a block around ( Add this to a auxiliarBlocks vector, which will contain all this kind of blocks )
+	When creating auxiliarBlocks, count how many I'm adding in one column. Up to two blocks, add dirt blocks and more than 2 add stone blocks
+
+Terrain/World 3
 	Add trees
 	Add walkthroughable vegetation ( similar to grass from LearnOpenGL tutorial )
 
-Terrain 4
+Terrain/World 4
 	Research on how to have more control on the terrain generation ( octaves? )
 	Search for other implementations
 	Try to understand it deeply and do my own mods
@@ -94,7 +132,7 @@ Interface Engine 2.2
 	ok - Create Label class
 	ok - The class will have everything needed to render a text
 	ok - Will have a render function, shader, VAO and VBO and stuff
-	Check mouse collision with object
+	ok - Check mouse collision with object
 	ok - Has position and size parameters
 
 Interface Engine 2.3
@@ -107,8 +145,11 @@ Interface Engine 2.3
 		The function will be at main.cpp
 		When check collision is true, call method and pass its parameters
 
+Interface Engine 2.4
+	Improve Label's BBox - It's a little small right now
+	Button changes color for a small moment when clicked
+
 Selfmade Interface 5
-	Improve BBox - It's a little small right now
 	Create UI class that will be the class that commands everything that is UI related
 	Create UIElement class that will be the super class of the Label and Button classes. This will have common features for both label and button
 
