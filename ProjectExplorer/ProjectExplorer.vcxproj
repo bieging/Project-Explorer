@@ -172,8 +172,10 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Docs\Issues Annotations.md" />
-    <None Include="Shaders\depth.frag" />
-    <None Include="Shaders\depth.vs" />
+    <None Include="Shaders\geo.frag" />
+    <None Include="Shaders\geo.vs" />
+    <None Include="Shaders\lamp.frag" />
+    <None Include="Shaders\lamp.vs" />
     <None Include="Shaders\text.frag" />
     <None Include="Shaders\text.vs" />
   </ItemGroup>

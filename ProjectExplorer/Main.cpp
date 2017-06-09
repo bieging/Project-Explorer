@@ -855,8 +855,8 @@ void Render()
 	glUniformMatrix4fv(glGetUniformLocation(shaderLAMP.Program, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
 	glUniformMatrix4fv(glGetUniformLocation(shaderLAMP.Program, "view"), 1, GL_FALSE, glm::value_ptr(view));
 	glm::mat4 model = glm::mat4();
-	model = glm::translate(model, lightPos);
-	model = glm::scale(model, glm::vec3(100.2f)); // a smaller cube
+	model = glm::translate(model, glm::vec3(playerPos.x + 10.0f, playerPos.y, playerPos.z));
+	model = glm::scale(model, glm::vec3(0.2f)); // a smaller cube
 	glUniformMatrix4fv(glGetUniformLocation(shaderLAMP.Program, "model"), 1, GL_FALSE, glm::value_ptr(model));
 
 	glBindVertexArray(lightVAO);
