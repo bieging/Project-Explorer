@@ -12,6 +12,8 @@ const float playerSpeed			= 3.0f;
 const int	playerJumpTime		= 13;
 const float playerJumpAcceleration = 0.75f;
 
+const float sunSize = 35.0f;
+
 const glm::vec3 lightColor = glm::vec3(1.0f, 1.0f, 1.0f);
 glm::vec3 lightPos = glm::vec3(1.0f, 250.0f, 1.0f);
 

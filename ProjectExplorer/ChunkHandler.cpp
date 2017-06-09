@@ -60,7 +60,7 @@ ChunkHandler::ChunkHandler(float playerXPos, float playerZPos)
 					chunks.back().blocksHeight[x][z] = mappedValue;
 					// Add a random block type value
 					int randNum = randomMin + (rand() % (int)(randomMax - randomMin + 1));
-					chunks.back().blocksType[x][z] = (randNum < 50) ? 0 : 1;
+					chunks.back().blocksType[x][z] = (randNum < 0.5f) ? 0 : 1;
 				}
 			}
 		}
@@ -128,7 +128,7 @@ ChunkHandler::ChunkHandler(float playerXPos, float playerZPos, unsigned int seed
 					chunks.back().blocksHeight[x][z] = mappedValue;
 					// Add a random block type value
 					int randNum = randomMin + (rand() % (int)(randomMax - randomMin + 1));
-					chunks.back().blocksType[x][z] = (randNum < 50) ? 0 : 1;
+					chunks.back().blocksType[x][z] = (randNum < 0.5f) ? 0 : 1;
 				}
 			}
 		}
@@ -204,7 +204,7 @@ void ChunkHandler::updatePlayerPosition(float playerXPos, float playerZPos)
 	}
 }
 
-float ChunkHandler::getHeightValue(float playerXPos, float playerZPos)
+int ChunkHandler::getHeightValue(float playerXPos, float playerZPos)
 {
 	playerLastX = playerXPos;
 	playerLastZ = playerZPos;
@@ -278,7 +278,7 @@ void ChunkHandler::generateChunk(int chunkXIndex, int chunkZIndex)
 			chunks.back().blocksHeight[x][z] = mappedValue;
 			// Add a random block type value
 			int randNum = randomMin + (rand() % (int)(randomMax - randomMin + 1));
-			chunks.back().blocksType[x][z] = (randNum < 50) ? 0 : 1;
+			chunks.back().blocksType[x][z] = (randNum < 0.5f) ? 0 : 1;
 		}
 	}
 }
