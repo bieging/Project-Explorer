@@ -122,7 +122,7 @@ ChunkHandler::ChunkHandler(float playerXPos, float playerZPos, unsigned int seed
 					GLfloat perlinValue = this->perlin.noise(perlinX, perlinZ, 0.0f);
 
 					// Map absolute x and z positions back to 0-255 range
-					GLfloat mappedValue = std::floor(bmath::map(perlinValue, 0.0f, 1.0f, 0.0f, 383.0f));
+					GLfloat mappedValue = std::floor(bmath::map(perlinValue, 0.0f, 1.0f, 0.0f, 255.0f));
 
 					// Add height value to block
 					chunks.back().blocksHeight[x][z] = mappedValue;
