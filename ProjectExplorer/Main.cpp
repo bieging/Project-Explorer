@@ -849,7 +849,7 @@ void Render()
 
 		for (; lbIt < informationLabels.end(); lbIt++, i++)
 		{
-			informationLabels.at(i)->render(shaderTXT, glm::vec3(1.0f, 0.0f, 0.0f));
+			informationLabels.at(i)->render(shaderTXT, glm::vec3(1.0f, 1.0f, 1.0f));
 		}
 
 		glDisable(GL_BLEND);
@@ -870,7 +870,7 @@ void Render()
 
 		for (; lbIt < menuLabels.end(); lbIt++, i++)
 		{
-			menuLabels.at(i)->render(shaderTXT, glm::vec3(1.0f, 0.0f, 0.0f));
+			menuLabels.at(i)->render(shaderTXT, glm::vec3(1.0f, 1.0f, 1.0f));
 		}
 
 		lbIt = informationLabels.begin();
@@ -878,7 +878,7 @@ void Render()
 
 		for (; lbIt < informationLabels.end(); lbIt++, i++)
 		{
-			informationLabels.at(i)->render(shaderTXT, glm::vec3(1.0f, 0.0f, 0.0f));
+			informationLabels.at(i)->render(shaderTXT, glm::vec3(1.0f, 1.0f, 1.0f));
 		}
 
 		glDisable(GL_BLEND);
