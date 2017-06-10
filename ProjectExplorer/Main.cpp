@@ -276,7 +276,7 @@ int main()
 	initRenderData();
 
 	// Initialize player's Y position
-	GLint heightValue = chunkHandler.getHeightValue(playerPos.x, playerPos.z);
+	GLint heightValue = (chunkHandler.getHeightValue(playerPos.x, playerPos.z));
 	playerPos.y = heightValue;
 	gravityVelocity = 0.05f;
 	playerLastY = playerPos.y;
@@ -323,7 +323,7 @@ int main()
 
 		// Draw objects
 		view = camera.GetViewMatrix();
-		projection = glm::perspective(camera.Zoom, (float)screenWidth / (float)screenHeight, 0.1f, 750.0f);
+		projection = glm::perspective(camera.Zoom, (float)screenHeight / (float)screenHeight, 0.1f, 750.0f);
 
 		shaderGEO.Use();
 		glUniformMatrix4fv(glGetUniformLocation(shaderGEO.Program, "view"), 1, GL_FALSE, glm::value_ptr(view));
@@ -516,7 +516,7 @@ void initializeWorldVectors()
 	chunkHandler = ChunkHandler(playerPos.x, playerPos.z, seed);
 
 	auto finish = std::chrono::high_resolution_clock::now();
-	int initializeTime = std::chrono::duration_cast<std::chrono::milliseconds>(finish - start).count();
+	__int64 initializeTime = std::chrono::duration_cast<std::chrono::milliseconds>(finish - start).count();
 	std::cout << "Map took: " << std::to_string(initializeTime) << " miliseconds to initialize" << std::endl;
 	std::cout << std::endl;
 }
@@ -570,7 +570,7 @@ void initializeUI()
 	menuLabels.push_back(&lbExit);
 
 	auto finish = std::chrono::high_resolution_clock::now();
-	int initializeTime = std::chrono::duration_cast<std::chrono::milliseconds>(finish - start).count();
+	__int64 initializeTime = std::chrono::duration_cast<std::chrono::milliseconds>(finish - start).count();
 	std::cout << "UI took: " << std::to_string(initializeTime) << " miliseconds to initialize" << std::endl;
 	std::cout << std::endl;
 }
@@ -691,7 +691,7 @@ void initRenderData()
 	//glBindVertexArray(0);
 
 	auto finish = std::chrono::high_resolution_clock::now();
-	int initializeTime = std::chrono::duration_cast<std::chrono::microseconds>(finish - start).count();
+	__int64 initializeTime = std::chrono::duration_cast<std::chrono::microseconds>(finish - start).count();
 	std::cout << "Render data took: " << std::to_string(initializeTime) << " microseconds to initialize" << std::endl;
 	std::cout << std::endl;
 }
@@ -724,7 +724,7 @@ void RawRender(Shader &shader, GLint textureID, glm::vec3 color, GLint blockType
 
 	glm::mat4 model = glm::mat4();
 	model = glm::translate(model, lightPos);
-	model = glm::scale(model, glm::vec3(25.0f));
+	model = glm::scale(model, glm::vec3(sunSize));
 	glUniformMatrix4fv(glGetUniformLocation(shaderLAMP.Program, "model"), 1, GL_FALSE, glm::value_ptr(model));
 	glDrawArrays(GL_TRIANGLES, 0, 36);
 
@@ -884,8 +884,6 @@ void Render()
 		glDisable(GL_BLEND);
 		glDisable(GL_CULL_FACE);
 	}
-
-
 
 	// Swap the buffers
 	glfwSwapBuffers(window);

@@ -43,7 +43,7 @@ public:
 
 	void updateVisibleChunks(float playerXPos, float playerZPos);
 	void updatePlayerPosition(float playerXPos, float playerZPos);
-	float getHeightValue(float playerXPos, float playerZPos);
+	int getHeightValue(float playerXPos, float playerZPos);
 	float getVisibleChunkSide();
 	void setVisibleChunkSid(int newVisibleChunkSide);
 private:
@@ -65,10 +65,10 @@ private:
 	int playerLastZ = 0;
 
 	// This is how many chunk will be generated around the player
-	int initialChunkSide = 11;
+	int initialChunkSide = 7;
 
 	// This is how many chunk will be visible by the player
-	int visibleChunkSide = 15;
+	int visibleChunkSide = 11;
 
 	void generateChunk(int chunkX, int chunkZ);
 	void generateInitialChunks(int chunkX, int chunkZ);
