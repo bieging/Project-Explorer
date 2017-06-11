@@ -51,7 +51,7 @@ ChunkHandler::ChunkHandler(float playerXPos, float playerZPos)
 					GLfloat perlinX = bmath::norm(absoluteX, 0, 255);
 					GLfloat perlinZ = bmath::norm(absoluteY, 0, 255);
 
-					GLfloat perlinValue = this->perlin.noise(perlinX, perlinZ, 0.0f);
+					GLfloat perlinValue = this->perlin->noise(perlinX, perlinZ, 0.0f);
 
 					// Map absolute x and z positions back to 0-255 range
 					GLfloat mappedValue = std::floor(bmath::map(perlinValue, 0.0f, 1.0f, 0.0f, 255.0f));
@@ -60,7 +60,7 @@ ChunkHandler::ChunkHandler(float playerXPos, float playerZPos)
 					chunks.back().blocksHeight[x][z] = mappedValue;
 					// Add a random block type value
 					int randNum = randomMin + (rand() % (int)(randomMax - randomMin + 1));
-					chunks.back().blocksType[x][z] = (randNum < 0.5f) ? 0 : 1;
+					chunks.back().blocksType[x][z] = (randNum < 50.0f) ? 0 : 1;
 				}
 			}
 		}
@@ -77,8 +77,7 @@ ChunkHandler::ChunkHandler(float playerXPos, float playerZPos, unsigned int seed
 	playerLastZ = playerZPos;
 
 	this->seed = seed;
-
-	perlin = PerlinNoise(seed);
+	perlin = new PerlinNoise(seed);
 
 	// Player's rounded position
 	int xPos = static_cast<int>(playerXPos);
@@ -119,7 +118,7 @@ ChunkHandler::ChunkHandler(float playerXPos, float playerZPos, unsigned int seed
 					GLfloat perlinX = bmath::norm(absoluteX, 0, 255);
 					GLfloat perlinZ = bmath::norm(absoluteY, 0, 255);
 
-					GLfloat perlinValue = this->perlin.noise(perlinX, perlinZ, 0.0f);
+					GLfloat perlinValue = this->perlin->noise(perlinX, perlinZ, 0.0f);
 
 					// Map absolute x and z positions back to 0-255 range
 					GLfloat mappedValue = std::floor(bmath::map(perlinValue, 0.0f, 1.0f, 0.0f, 255.0f));
@@ -128,7 +127,7 @@ ChunkHandler::ChunkHandler(float playerXPos, float playerZPos, unsigned int seed
 					chunks.back().blocksHeight[x][z] = mappedValue;
 					// Add a random block type value
 					int randNum = randomMin + (rand() % (int)(randomMax - randomMin + 1));
-					chunks.back().blocksType[x][z] = (randNum < 0.5f) ? 0 : 1;
+					chunks.back().blocksType[x][z] = (randNum < 50.0f) ? 0 : 1;
 				}
 			}
 		}
@@ -269,7 +268,7 @@ void ChunkHandler::generateChunk(int chunkXIndex, int chunkZIndex)
 			GLfloat perlinX = bmath::norm(absoluteX, 0, 255);
 			GLfloat perlinZ = bmath::norm(absoluteY, 0, 255);
 
-			GLfloat perlinValue = this->perlin.noise(perlinX, perlinZ, 0.0f);
+			GLfloat perlinValue = this->perlin->noise(perlinX, perlinZ, 0.0f);
 
 			// Map absolute x and z positions back to 0-255 range
 			GLfloat mappedValue = std::floor(bmath::map(perlinValue, 0.0f, 1.0f, 0.0f, 255.0f));
@@ -278,7 +277,7 @@ void ChunkHandler::generateChunk(int chunkXIndex, int chunkZIndex)
 			chunks.back().blocksHeight[x][z] = mappedValue;
 			// Add a random block type value
 			int randNum = randomMin + (rand() % (int)(randomMax - randomMin + 1));
-			chunks.back().blocksType[x][z] = (randNum < 0.5f) ? 0 : 1;
+			chunks.back().blocksType[x][z] = (randNum < 50.0f) ? 0 : 1;
 		}
 	}
 }

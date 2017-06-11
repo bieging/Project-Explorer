@@ -3,6 +3,9 @@
 #define GRASS_ID 0
 #define STONE_ID 1
 
+const glm::vec3 stoneColor = glm::vec3(1.0, 1.0, 1.0);
+const glm::vec3 grassColor = glm::vec3(0.2, 0.7, 0.2);
+
 const float maxGravityVelocity = 0.8f;
 const float gravityAcceleration = 0.5f;
 

@@ -26,9 +26,36 @@ Bugs
 
 Later
 
+Resource Manager
+Shader class
+Render class
+
+Seed Input 1.0
+	Accept all kind of characters
+	Turn the input string into a char array and sum the value of all char values
+
+Seed Input 1.1
+	Create a all number hash of the input string ( experimental only )
+
 Increase player camera position as the blocks seem very big now
 
+Quad or Octtrees for the future
+Desceased LOD for higher distances
+	Create my own LODHandler
+		If block is located at a certain distance, render it as a cube 2 times its size
+		This would create a block which is 8 times greater than a standard block, and would save a lot of render calls
+		I could have 2 options
+			1 - Just use glm::scale to make the cube larger and render the next next cube ( render one, skip one, and so on )
+			2 - Create a bigger cube using another VBO and create another VAO. Use this VAO to render cubes which are farther away. To use this more effectively, I would need to create a circleRender, which would first render the chunks around the player, and then moving on to render the chunks that are farther from the player. This way I could Only change the VAO once
+		I would be also nice to create a cube with sides 4 times larger, for even farther distances. This would save 64 draw calls. A lot, isn't it?
+
+		Another think that could be done is to create a nearChunks vector which stores the position of the chunks close to the player, and pre-create a farChunks vector, which would store the position of the chunks in which I would apply a lower LOD. The idea of this is to avoid calculating which chunk is near of far from the player everytime I render the blocks
+	Check out how others created their LOD managers
+
 Code Improvement 1.3
+	InputHandler class
+
+Code Improvement 1.4
 
 Trees 1.0
 	Select random positions and add this positions to the trees vector
@@ -46,12 +73,6 @@ Physics 1.2
 	Check if player is jumping while moving towards a wall. It can still move up and get to the block in case it passes the heightValue of that block
 
 Chunk and ChunkHandler (Important)
-
-Terrain/World 1.2
-	Create water blocks a few blocks below sand blocks ( Water will not affect the heightmap )
-	Condition to add water - if (currentY > heightValue && currentY <= waterHeightThreshold)
-	Sand blocks should still be the floor
-	Player can go through water ( as standard )
 
 Terrain/World 1.3
 	When creating blocks in very high positions, create blocks below them until there's a block around ( Add this to a auxiliarBlocks vector, which will contain all this kind of blocks )

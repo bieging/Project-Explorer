@@ -149,6 +149,7 @@
   <ItemGroup>
     <ClCompile Include="ChunkHandler.cpp" />
     <ClCompile Include="Font.cpp" />
+    <ClCompile Include="Game.cpp" />
     <ClCompile Include="Label.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="PerlinNoise.cpp" />
@@ -163,6 +164,7 @@
     <ClInclude Include="ChunkHandler.h" />
     <ClInclude Include="Defines.h" />
     <ClInclude Include="Font.h" />
+    <ClInclude Include="Game.h" />
     <ClInclude Include="Label.h" />
     <ClInclude Include="Main.h" />
     <ClInclude Include="PerlinNoise.h" />

@@ -51,7 +51,7 @@ private:
 	std::map<std::pair<int, int>, int> worldmap;
 	std::pair<int, int> currentChunkIndex;
 
-	PerlinNoise perlin;
+	PerlinNoise* perlin;
 
 	// Seed to generate terrain. Can only be set in the constructor
 	unsigned int seed;
@@ -65,10 +65,10 @@ private:
 	int playerLastZ = 0;
 
 	// This is how many chunk will be generated around the player
-	int initialChunkSide = 7;
+	int initialChunkSide = 5;
 
 	// This is how many chunk will be visible by the player
-	int visibleChunkSide = 11;
+	int visibleChunkSide = 7;
 
 	void generateChunk(int chunkX, int chunkZ);
 	void generateInitialChunks(int chunkX, int chunkZ);

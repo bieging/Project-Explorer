@@ -44,6 +44,44 @@ using namespace irrklang;
 
 ISoundEngine *SoundEngine = createIrrKlangDevice();
 
+// GLFW Window
+GLFWwindow* window;
+
+// Shaders
+Shader shaderGEO;
+Shader shaderLAMP;
+Shader shaderTXT;
+// Fonts
+Font* fontArial;
+TextFormatting currentCharacterSet = PLAIN;
+
+// Labels
+std::vector<Label*> welcomeLabels;
+std::vector<Label*> informationLabels;
+std::vector<Label*> menuLabels;
+
+Label lbWelcome;
+
+Label lbFPS;
+Label lbPlayerX;
+Label lbPlayerY;
+Label lbPlayerZ;
+Label lbLightStrength;
+Label lbYVelocity;
+Label lbMouseX;
+Label lbMouseY;
+Label lbWorldSize;
+
+Label lbSave;
+Label lbLoad;
+Label lbExit;
+
+// Chunks Handler
+ChunkHandler* chunkHandler;
+
+// Physics
+GLfloat playerLastY;
+
 int aux = 0;
 
 // Properties
@@ -62,7 +100,6 @@ const int fpsCounterLimit = 1000;
 int frames = 0;
 
 bool spacePressed = false;
-bool shiftPressed = false;
 bool spaceReleased = false;
 bool shiftReleased = false;
 
@@ -74,26 +111,6 @@ bool flyAscend = false;
 bool flyDescend = false;
 
 bool mouseFlag = false;
-
-enum PLAYER_GRAVITY_STATE
-{
-	GRAVITY,
-	FIXED_H_FLY,
-	FREE_FLY
-};
-
-enum GAME_STATE
-{
-	WELCOME,
-	START,
-	MENU,
-	ACTIVE,
-	INFORMATION
-};
-
-PLAYER_GRAVITY_STATE pgs = GRAVITY;
-GAME_STATE gs = WELCOME;
-GAME_STATE lastGameState = WELCOME;
 
 // Player
 GLfloat gravityVelocity = 0.05f;
@@ -128,8 +145,7 @@ void Render();
 //std::tuple<GLfloat, GLfloat> uiTextDimension(std::string text, GLfloat x, GLfloat y, GLfloat scale);
 void uiCollision();
 
-void initializePerlinNoise();
-void initializeWorldVectors();
+void initializeWorldmap();
 void initializeUI();
 
 float map(float value,
@@ -139,6 +155,7 @@ float map(float value,
 // Camera
 Camera camera(glm::vec3(10.0f, playerHeight, 10.0f));
 bool keys[1024];
+int  actions[1024];
 GLfloat lastX = 400, lastY = 300;
 bool firstMouse = true;
 bool cursorFree = false;
@@ -162,55 +179,11 @@ GLuint textVAO, textVBO;
 GLuint stoneTexID;
 GLuint grassTexID;
 
-glm::vec3 stoneColor  = glm::vec3(1.0, 1.0, 1.0);
-glm::vec3 grassColor = glm::vec3(0.2, 0.7, 0.2);
-
-// Shaders
-Shader shaderGEO;
-Shader shaderLAMP;
-Shader shaderTXT;
 
 // Global lighting vars
 GLfloat timeValue;
 GLfloat strength;
 
-// GLFW Window
-GLFWwindow* window;
-
-// Fonts
-Font fontArial;
-TextFormatting currentCharacterSet = PLAIN;
-
-// Labels
-std::vector<Label*> welcomeLabels;
-std::vector<Label*> informationLabels;
-std::vector<Label*> menuLabels;
-
-Label lbWelcome;
-
-Label lbFPS;
-Label lbPlayerX;
-Label lbPlayerY;
-Label lbPlayerZ;
-Label lbLightStrength;
-Label lbYVelocity;
-Label lbMouseX;
-Label lbMouseY;
-Label lbWorldSize;
-
-Label lbSave;
-Label lbLoad;
-Label lbExit;
-
-// Perlin Terrain Generator
-PerlinNoise perlin;
-GLuint seed = 0;
-
-// Chunks Handler
-ChunkHandler chunkHandler;
-
-// Physics
-GLfloat playerLastY;
 
 // The MAIN function, from here we start our application and run our Game loop
 int main()
@@ -261,13 +234,10 @@ int main()
 
 #pragma region "object_initialization"
 	// Load fonts
-	fontArial = Font("Fonts", "arial");
-
-	// Configure terrain generator
-	initializePerlinNoise();
+	fontArial = new Font("Fonts", "arial");
 	
 	// Create map and heightMap
-	initializeWorldVectors();
+	initializeWorldmap();
 
 	// Configure all interface related objects
 	initializeUI();
@@ -276,7 +246,7 @@ int main()
 	initRenderData();
 
 	// Initialize player's Y position
-	GLint heightValue = (chunkHandler.getHeightValue(playerPos.x, playerPos.z));
+	GLint heightValue = (chunkHandler->getHeightValue(playerPos.x, playerPos.z));
 	playerPos.y = heightValue;
 	gravityVelocity = 0.05f;
 	playerLastY = playerPos.y;
@@ -306,7 +276,7 @@ int main()
 		//if (strength <= 0.1)
 		//	strength = 0.1;
 		//if (strength > 0.7)
-			strength = 0.3;
+		strength = 0.3;
 
 		updatePlayerVelocity(deltaTime);
 
@@ -354,6 +324,9 @@ int main()
 		}
 	}
 
+	delete fontArial;
+	delete chunkHandler;
+
 	glfwTerminate();
 	return 0;
 }
@@ -398,7 +371,7 @@ void pgsGravity(GLfloat dt)
 		}
 		else
 		{
-			GLint heightValue = chunkHandler.getHeightValue(playerPos.x, playerPos.z);
+			GLint heightValue = chunkHandler->getHeightValue(playerPos.x, playerPos.z);
 
 			if (playerPos.y > heightValue)
 			{
@@ -495,8 +468,12 @@ GLuint loadTexture(GLchar* path)
 
 #pragma region Initialization
 
-void initializePerlinNoise()
+void initializeWorldmap()
 {
+	std::cout << "Initializing map, please wait" << std::endl;
+	auto start = std::chrono::high_resolution_clock::now();
+
+	int seed;
 	std::cout << "Please enter a seed number to generate your terrain: " << std::endl;
 	std::cout << "Enter \"n\" to initialize with standard seed" << std::endl;
 	std::string seedInput = "";
@@ -504,16 +481,9 @@ void initializePerlinNoise()
 	if (seedInput != "n")
 	{
 		seed = std::stoi(seedInput);
-		//perlin = PerlinNoise(seed);
 	}
-}
 
-void initializeWorldVectors()
-{
-	std::cout << "Initializing map, please wait" << std::endl;
-	auto start = std::chrono::high_resolution_clock::now();
-
-	chunkHandler = ChunkHandler(playerPos.x, playerPos.z, seed);
+	chunkHandler = new ChunkHandler(playerPos.x, playerPos.z, seed);
 
 	auto finish = std::chrono::high_resolution_clock::now();
 	__int64 initializeTime = std::chrono::duration_cast<std::chrono::milliseconds>(finish - start).count();
@@ -527,21 +497,21 @@ void initializeUI()
 	auto start = std::chrono::high_resolution_clock::now();
 
 	// Create Welcome Label
-	lbWelcome = Label("Welcome to Project Explorer", 100.0f, 300.0f, 1.0f, fontArial.getCharacterSet(PLAIN));
+	lbWelcome = Label("Welcome to Project Explorer", 100.0f, 300.0f, 1.0f, fontArial->getCharacterSet(PLAIN));
 
 	// Add Welcome Labels to their Label vector
 	welcomeLabels.push_back(&lbWelcome);
 
 	// Create Information Labels
-	lbFPS			= Label("FPS: "						+ std::to_string(fps),							25.0f, 570.0f, 0.3f, fontArial.getCharacterSet(PLAIN));
-	lbPlayerX		= Label("Player X: "				+ std::to_string(camera.Position.x),			25.0f, 550.0f, 0.3f, fontArial.getCharacterSet(PLAIN));
-	lbPlayerY		= Label("Player Y: "				+ std::to_string(camera.Position.y),			25.0f, 530.0f, 0.3f, fontArial.getCharacterSet(PLAIN));
-	lbPlayerZ		= Label("Player Z: "				+ std::to_string(camera.Position.z),			25.0f, 510.0f, 0.3f, fontArial.getCharacterSet(PLAIN));
-	lbLightStrength = Label("Ambient Light Strength: "	+ std::to_string(strength),						25.0f, 490.0f, 0.3f, fontArial.getCharacterSet(PLAIN));
-	lbYVelocity		= Label("Y Velocity: "				+ std::to_string(gravityVelocity),				25.0f, 470.0f, 0.3f, fontArial.getCharacterSet(PLAIN));
-	lbMouseX		= Label("Mouse X: "					+ std::to_string(lastX),						25.0f, 450.0f, 0.3f, fontArial.getCharacterSet(PLAIN));
-	lbMouseY		= Label("Mouse Y: "					+ std::to_string(lastY),						25.0f, 430.0f, 0.3f, fontArial.getCharacterSet(PLAIN));
-	lbWorldSize		= Label("World Size: "				+ std::to_string(chunkHandler.chunks.size()),	25.0f, 410.0f, 0.3f, fontArial.getCharacterSet(PLAIN));
+	lbFPS			= Label("FPS: "						+ std::to_string(fps),							25.0f, 570.0f, 0.3f, fontArial->getCharacterSet(PLAIN));
+	lbPlayerX		= Label("Player X: "				+ std::to_string(camera.Position.x),			25.0f, 550.0f, 0.3f, fontArial->getCharacterSet(PLAIN));
+	lbPlayerY		= Label("Player Y: "				+ std::to_string(camera.Position.y),			25.0f, 530.0f, 0.3f, fontArial->getCharacterSet(PLAIN));
+	lbPlayerZ		= Label("Player Z: "				+ std::to_string(camera.Position.z),			25.0f, 510.0f, 0.3f, fontArial->getCharacterSet(PLAIN));
+	lbLightStrength = Label("Ambient Light Strength: "	+ std::to_string(strength),						25.0f, 490.0f, 0.3f, fontArial->getCharacterSet(PLAIN));
+	lbYVelocity		= Label("Y Velocity: "				+ std::to_string(gravityVelocity),				25.0f, 470.0f, 0.3f, fontArial->getCharacterSet(PLAIN));
+	lbMouseX		= Label("Mouse X: "					+ std::to_string(lastX),						25.0f, 450.0f, 0.3f, fontArial->getCharacterSet(PLAIN));
+	lbMouseY		= Label("Mouse Y: "					+ std::to_string(lastY),						25.0f, 430.0f, 0.3f, fontArial->getCharacterSet(PLAIN));
+	lbWorldSize		= Label("World Size: "				+ std::to_string(chunkHandler->chunks.size()),	25.0f, 410.0f, 0.3f, fontArial->getCharacterSet(PLAIN));
 
 	// Add Information Labels to their Label vector
 	informationLabels.push_back(&lbFPS);
@@ -555,9 +525,9 @@ void initializeUI()
 	informationLabels.push_back(&lbWorldSize);
 
 	// Create Menu Labels
-	lbSave = Label("Save", 350.0f, 570.0f, 0.5f, fontArial.getCharacterSet(currentCharacterSet));
-	lbLoad = Label("Load", 350.0f, 510.0f, 0.5f, fontArial.getCharacterSet(currentCharacterSet));
-	lbExit = Label("Exit", 350.0f, 450.0f, 0.5f, fontArial.getCharacterSet(currentCharacterSet));
+	lbSave = Label("Save", 350.0f, 570.0f, 0.5f, fontArial->getCharacterSet(currentCharacterSet));
+	lbLoad = Label("Load", 350.0f, 510.0f, 0.5f, fontArial->getCharacterSet(currentCharacterSet));
+	lbExit = Label("Exit", 350.0f, 450.0f, 0.5f, fontArial->getCharacterSet(currentCharacterSet));
 
 	// Set function for each button
 	lbSave.setLeftMouseClickFunction(lbSave_leftClick);
@@ -745,9 +715,9 @@ void RawRender(Shader &shader, GLint textureID, glm::vec3 color, GLint blockType
 	//glDrawArraysInstanced(GL_TRIANGLES, 0, 36, chunkHandler.numberOfVisibleCubes);
 	//glBindVertexArray(0);
 
-	for (int i = 0; i < chunkHandler.visibleChunks.size(); i++)
+	for (int i = 0; i < chunkHandler->visibleChunks.size(); i++)
 	{
-		chunkPtr = &chunkHandler.chunks.at(chunkHandler.visibleChunks.at(i));
+		chunkPtr = &chunkHandler->chunks.at(chunkHandler->visibleChunks.at(i));
 		
 		for (int x = 0; x < chunkSize; x++)
 		{
@@ -926,26 +896,34 @@ void treatPlayerMovementKeys()
 	// Camera controls
 	if (keys[GLFW_KEY_W])
 	{
-		if (shiftPressed)	camera.ProcessKeyboard(FORWARD, deltaTime * runSpeedMultiplier);
-		else				camera.ProcessKeyboard(FORWARD, deltaTime);
+		if (keys[GLFW_KEY_LEFT_SHIFT] && actions[GLFW_KEY_W] == INPUT_PRESSED)
+			camera.ProcessKeyboard(FORWARD, deltaTime * runSpeedMultiplier);
+		else
+			camera.ProcessKeyboard(FORWARD, deltaTime);
 	}
 	if (keys[GLFW_KEY_S])
 	{
-		if (shiftPressed)	camera.ProcessKeyboard(BACKWARD, deltaTime * runSpeedMultiplier);
-		else				camera.ProcessKeyboard(BACKWARD, deltaTime);
+		if (keys[GLFW_KEY_LEFT_SHIFT] && actions[GLFW_KEY_W] == INPUT_PRESSED)
+			camera.ProcessKeyboard(BACKWARD, deltaTime * runSpeedMultiplier);
+		else
+			camera.ProcessKeyboard(BACKWARD, deltaTime);
 	}
 	if (keys[GLFW_KEY_A])
 	{
-		if (shiftPressed)	camera.ProcessKeyboard(LEFT, deltaTime * runSpeedMultiplier);
-		else				camera.ProcessKeyboard(LEFT, deltaTime);
+		if (keys[GLFW_KEY_LEFT_SHIFT] && actions[GLFW_KEY_W] == INPUT_PRESSED)
+			camera.ProcessKeyboard(LEFT, deltaTime * runSpeedMultiplier);
+		else
+			camera.ProcessKeyboard(LEFT, deltaTime);
 	}
 	if (keys[GLFW_KEY_D])
 	{
-		if (shiftPressed)	camera.ProcessKeyboard(RIGHT, deltaTime * runSpeedMultiplier);
-		else				camera.ProcessKeyboard(RIGHT, deltaTime);
+		if (keys[GLFW_KEY_LEFT_SHIFT] && actions[GLFW_KEY_W] == INPUT_PRESSED)
+			camera.ProcessKeyboard(RIGHT, deltaTime * runSpeedMultiplier);
+		else
+			camera.ProcessKeyboard(RIGHT, deltaTime);
 	}
 
-	GLint heightValue = chunkHandler.getHeightValue(camera.Position.x, camera.Position.z);
+	GLint heightValue = chunkHandler->getHeightValue(camera.Position.x, camera.Position.z);
 
 	// Player Wall Collision Physics Treatment
 	// todo - explain what is going on here
@@ -954,7 +932,7 @@ void treatPlayerMovementKeys()
 		playerPos.x = camera.Position.x;
 		playerPos.z = camera.Position.z;
 
-		chunkHandler.updatePlayerPosition(playerPos.x, playerPos.z);
+		chunkHandler->updatePlayerPosition(playerPos.x, playerPos.z);
 
 		// Update player position labels with new position values
 		lbPlayerX.setText("Player X: " + std::to_string(camera.Position.x));
@@ -962,7 +940,7 @@ void treatPlayerMovementKeys()
 		lbPlayerZ.setText("Player Z: " + std::to_string(camera.Position.z));
 
 		// Update world size label in case new chunks were added
-		lbWorldSize.setText("World Size: " + std::to_string(chunkHandler.chunks.size()));
+		lbWorldSize.setText("World Size: " + std::to_string(chunkHandler->chunks.size()));
 	}
 	else
 	{
@@ -973,19 +951,46 @@ void treatPlayerMovementKeys()
 
 void treatGameControlKeys()
 {
+	if (keys[GLFW_KEY_T] && actions[GLFW_KEY_T] == INPUT_PRESSED)
+	{
+		actions[GLFW_KEY_T] = INPUT_HOLD;
 
+		if (gs == ACTIVE)
+		{
+			switch (pgs)
+			{
+			case GRAVITY:
+				pgs = FIXED_H_FLY;
+				break;
+			case FIXED_H_FLY:
+				pgs = FREE_FLY;
+				break;
+			case FREE_FLY:
+				pgs = GRAVITY;
+				break;
+			default:
+				break;
+			}
+		}
+	}
 }
 
 void treatStateChangingKeys()
 {
-
-}
-
-// Is called whenever a key is pressed/released via GLFW
-void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode)
-{
-	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
+	if (keys[GLFW_KEY_ENTER] && actions[GLFW_KEY_ENTER] == INPUT_PRESSED)
 	{
+		actions[GLFW_KEY_ENTER] = INPUT_HOLD;
+
+		if (gs == WELCOME)
+		{
+			gs = ACTIVE;
+		}
+	}
+
+	if (keys[GLFW_KEY_ESCAPE] && actions[GLFW_KEY_ESCAPE] == INPUT_PRESSED)
+	{
+		actions[GLFW_KEY_ESCAPE] = INPUT_HOLD;
+
 		if (gs != MENU)
 		{
 			glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
@@ -1008,16 +1013,10 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 		}
 	}
 
-	if (key == GLFW_KEY_ENTER && action == GLFW_PRESS)
+	if (keys[GLFW_KEY_F3] && actions[GLFW_KEY_F3] == INPUT_PRESSED)
 	{
-		if (gs == WELCOME)
-		{
-			gs = ACTIVE;
-		}
-	}
+		actions[GLFW_KEY_F3] = INPUT_HOLD;
 
-	if (key == GLFW_KEY_F3 && action == GLFW_PRESS)
-	{
 		if (gs != INFORMATION)
 		{
 			lastGameState = gs;
@@ -1035,38 +1034,22 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 			}
 		}
 	}
-	if (key == GLFW_KEY_R && action == GLFW_PRESS)
+
+	if (keys[GLFW_KEY_R] && actions[GLFW_KEY_R] == INPUT_PRESSED)
 	{
+		actions[GLFW_KEY_R] = INPUT_HOLD;
+
 		if (gs == ACTIVE)
 		{
 			playerPos = glm::vec3(25.0, 25.0, 25.0);
-			initializeWorldVectors();
+			initializeWorldmap();
 		}
 	}
-	if (key == GLFW_KEY_T && action == GLFW_PRESS)
-	{
-		if (gs == ACTIVE)
-		{
-			switch (pgs)
-			{
-				case GRAVITY:
-					pgs = FIXED_H_FLY;
-					break;
-				case FIXED_H_FLY:
-					pgs = FREE_FLY;
-					break;
-				case FREE_FLY:
-					pgs = GRAVITY;
-					break;
-				default:
-					break;
-			}
-		}
-	}
-	
-	if		(key == GLFW_KEY_LEFT_SHIFT && action == GLFW_PRESS  )	shiftPressed = true;
-	else if (key == GLFW_KEY_LEFT_SHIFT && action == GLFW_RELEASE)	shiftPressed = false;
-	
+}
+
+// Is called whenever a key is pressed/released via GLFW
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode)
+{	
 	if (key == GLFW_KEY_SPACE && action == GLFW_PRESS)
 	{
 		if (gs == ACTIVE || gs == INFORMATION)
@@ -1082,7 +1065,8 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 					break;
 
 				case FIXED_H_FLY:
-					if (!shiftPressed)
+					if (keys[GLFW_KEY_LEFT_SHIFT] &&
+						actions[GLFW_KEY_W] == INPUT_RELEASED)
 					{
 						flyAscend = true;
 						flyDescend = false;
@@ -1127,9 +1111,15 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 	}
 
 	if (action == GLFW_PRESS)
+	{
 		keys[key] = true;
+		actions[key] = INPUT_PRESSED;
+	}
 	else if (action == GLFW_RELEASE)
+	{
 		keys[key] = false;
+		actions[key] = INPUT_RELEASED;
+	}
 }
 
 void mouse_callback(GLFWwindow* window, double xpos, double ypos)
