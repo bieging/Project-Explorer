@@ -29,6 +29,7 @@ Later
 Resource Manager
 Shader class
 Render class
+Texture class?
 
 Seed Input 1.0
 	Accept all kind of characters
