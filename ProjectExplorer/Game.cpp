@@ -1,16 +1,8 @@
 #include "Game.h"
 
-// Sound
-ISoundEngine* SoundEngine = createIrrKlangDevice();
 
 
-// Fonts
-Font* fontArial;
-
-// Chunks Handler
-ChunkHandler* chunkHandler;
-
-Game::Game(GLuint width, GLuint height) : gs(WELCOME), keys(), actions(), width(width), height(height)
+Game::Game(GLuint width, GLuint height) : gs(WELCOME), keys(), actions(), screenWidth(width), screenHeight(height)
 {
 }
 
@@ -21,6 +13,11 @@ Game::~Game()
 // Initialization
 void Game::init(GLFWwindow* windowptr)
 {
+	this->windowptr = windowptr;
+
+	camera = Camera(initialPosition);
+	playerPos = initialPosition;
+
 	// Setup and compile our shaders
 	shaderGEO.init("Shaders/geo.vs", "Shaders/geo.frag");
 	shaderLAMP.init("Shaders/lamp.vs", "Shaders/lamp.frag");
@@ -167,11 +164,10 @@ void Game::initializeUI()
 	welcomeLabels.push_back(&lbWelcome);
 
 	// Create Information Labels
-	lbFPS = Label("FPS: " + std::to_string(fps), 25.0f, 570.0f, 0.3f, fontArial->getCharacterSet(PLAIN));
+	lbFPS = Label("FPS: " + std::to_string(30), 25.0f, 570.0f, 0.3f, fontArial->getCharacterSet(PLAIN));
 	lbPlayerX = Label("Player X: " + std::to_string(camera.Position.x), 25.0f, 550.0f, 0.3f, fontArial->getCharacterSet(PLAIN));
 	lbPlayerY = Label("Player Y: " + std::to_string(camera.Position.y), 25.0f, 530.0f, 0.3f, fontArial->getCharacterSet(PLAIN));
 	lbPlayerZ = Label("Player Z: " + std::to_string(camera.Position.z), 25.0f, 510.0f, 0.3f, fontArial->getCharacterSet(PLAIN));
-	lbLightStrength = Label("Ambient Light Strength: " + std::to_string(strength), 25.0f, 490.0f, 0.3f, fontArial->getCharacterSet(PLAIN));
 	lbYVelocity = Label("Y Velocity: " + std::to_string(gravityVelocity), 25.0f, 470.0f, 0.3f, fontArial->getCharacterSet(PLAIN));
 	lbMouseX = Label("Mouse X: " + std::to_string(lastX), 25.0f, 450.0f, 0.3f, fontArial->getCharacterSet(PLAIN));
 	lbMouseY = Label("Mouse Y: " + std::to_string(lastY), 25.0f, 430.0f, 0.3f, fontArial->getCharacterSet(PLAIN));
@@ -182,7 +178,6 @@ void Game::initializeUI()
 	informationLabels.push_back(&lbPlayerX);
 	informationLabels.push_back(&lbPlayerY);
 	informationLabels.push_back(&lbPlayerZ);
-	informationLabels.push_back(&lbLightStrength);
 	informationLabels.push_back(&lbYVelocity);
 	informationLabels.push_back(&lbMouseX);
 	informationLabels.push_back(&lbMouseY);
@@ -236,13 +231,18 @@ GLuint Game::loadTexture(GLchar* path)
 
 void Game::update(float dt)
 {
+	this->dt = dt;
 
+	// Update FPS label with new FPS values
+	lbFPS.setText("FPS: " + std::to_string(fps));
 
+	// Get new camera view
+	view = camera.GetViewMatrix();
+	projection = glm::perspective(camera.Zoom, (float)this->screenHeight / (float)screenHeight, 0.1f, 100.0f);
 }
 
 void Game::updateUI()
 {
-	lbLightStrength.setText("Ambient Light Strength: " + std::to_string(strength));
 	lbYVelocity.setText("Y Velocity: " + std::to_string(gravityVelocity));
 }
 
@@ -251,6 +251,148 @@ void Game::treatInputs(float dt)
 	treatPlayerMovementKeys(dt);
 	treatGameControlKeys(dt);
 	treatStateChangingKeys(dt);
+}
+
+void Game::treatKeyboard(GLFWwindow* window, int key, int scancode, int action, int mode)
+{
+	if (key == GLFW_KEY_SPACE && action == GLFW_PRESS)
+	{
+		if (gs == ACTIVE || gs == INFORMATION)
+		{
+			switch (pgs)
+			{
+			case GRAVITY:
+				if (playerJumpEnable)
+				{
+					spacePressed = true;
+					playerJumpEnable = false;
+				}
+				break;
+
+			case FIXED_H_FLY:
+				if (keys[GLFW_KEY_LEFT_SHIFT] &&
+					actions[GLFW_KEY_W] == INPUT_RELEASED)
+				{
+					flyAscend = true;
+					flyDescend = false;
+				}
+				else
+				{
+					flyAscend = false;
+					flyDescend = true;
+				}
+				break;
+
+			case FREE_FLY:
+				break;
+
+			default:
+				break;
+			}
+		}
+	}
+	if (key == GLFW_KEY_SPACE && action == GLFW_RELEASE)
+	{
+		if (gs == ACTIVE || gs == INFORMATION)
+		{
+			switch (pgs)
+			{
+			case GRAVITY:
+				spacePressed = false;
+				break;
+
+			case FIXED_H_FLY:
+				flyAscend = false;
+				flyDescend = false;
+				break;
+
+			case FREE_FLY:
+				break;
+
+			default:
+				break;
+			}
+		}
+	}
+
+	if (action == GLFW_PRESS)
+	{
+		keys[key] = true;
+		actions[key] = INPUT_PRESSED;
+	}
+	else if (action == GLFW_RELEASE)
+	{
+		keys[key] = false;
+		actions[key] = INPUT_RELEASED;
+	}
+}
+
+void Game::treatMouseMovement(GLFWwindow* window, double xpos, double ypos)
+{
+	if (firstMouse)
+	{
+		lastX = xpos;
+		lastY = ypos;
+		firstMouse = false;
+	}
+
+	GLfloat xoffset = xpos - lastX;
+	GLfloat yoffset = lastY - ypos;
+
+	lastX = xpos;
+	lastY = ypos;
+
+	// Update mouse position labels with new position values
+	lbMouseX.setText("Mouse X: " + std::to_string(lastX));
+	lbMouseY.setText("Mouse Y: " + std::to_string(lastY));
+
+	if (gs == ACTIVE || gs == INFORMATION)
+	{
+		camera.ProcessMouseMovement(xoffset, yoffset);
+	}
+	else
+	{
+		checkUICollision();
+	}
+}
+
+void Game::treatMouseButton(GLFWwindow* window, int button, int action, int mods)
+{
+	if (gs == MENU)
+	{
+		if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
+		{
+			std::vector<Label*>::iterator lbIt = menuLabels.begin();
+			GLint i = 0;
+
+			for (; lbIt < menuLabels.end(); lbIt++, i++)
+			{
+				if (menuLabels.at(i)->colliding)
+				{
+					menuLabels.at(i)->leftMouseClickFunction();
+				}
+			}
+		}
+
+		if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS)
+		{
+			std::vector<Label*>::iterator lbIt = menuLabels.begin();
+			GLint i = 0;
+
+			for (; lbIt < menuLabels.end(); lbIt++, i++)
+			{
+				if (menuLabels.at(i)->colliding)
+				{
+					menuLabels.at(i)->rightMouseClickFunction();
+				}
+			}
+		}
+	}
+}
+
+void Game::treatMouseScroll(GLFWwindow* window, double xoffset, double yoffset)
+{
+	camera.ProcessMouseScroll(yoffset);
 }
 
 void Game::treatPlayerMovementKeys(float dt)
@@ -262,30 +404,30 @@ void Game::treatPlayerMovementKeys(float dt)
 	if (keys[GLFW_KEY_W])
 	{
 		if (keys[GLFW_KEY_LEFT_SHIFT] && actions[GLFW_KEY_W] == INPUT_PRESSED)
-			camera.ProcessKeyboard(FORWARD, deltaTime * runSpeedMultiplier);
+			camera.ProcessKeyboard(FORWARD, dt * runSpeedMultiplier);
 		else
-			camera.ProcessKeyboard(FORWARD, deltaTime);
+			camera.ProcessKeyboard(FORWARD, dt);
 	}
 	if (keys[GLFW_KEY_S])
 	{
 		if (keys[GLFW_KEY_LEFT_SHIFT] && actions[GLFW_KEY_W] == INPUT_PRESSED)
-			camera.ProcessKeyboard(BACKWARD, deltaTime * runSpeedMultiplier);
+			camera.ProcessKeyboard(BACKWARD, dt * runSpeedMultiplier);
 		else
-			camera.ProcessKeyboard(BACKWARD, deltaTime);
+			camera.ProcessKeyboard(BACKWARD, dt);
 	}
 	if (keys[GLFW_KEY_A])
 	{
 		if (keys[GLFW_KEY_LEFT_SHIFT] && actions[GLFW_KEY_W] == INPUT_PRESSED)
-			camera.ProcessKeyboard(LEFT, deltaTime * runSpeedMultiplier);
+			camera.ProcessKeyboard(LEFT, dt * runSpeedMultiplier);
 		else
-			camera.ProcessKeyboard(LEFT, deltaTime);
+			camera.ProcessKeyboard(LEFT, dt);
 	}
 	if (keys[GLFW_KEY_D])
 	{
 		if (keys[GLFW_KEY_LEFT_SHIFT] && actions[GLFW_KEY_W] == INPUT_PRESSED)
-			camera.ProcessKeyboard(RIGHT, deltaTime * runSpeedMultiplier);
+			camera.ProcessKeyboard(RIGHT, dt * runSpeedMultiplier);
 		else
-			camera.ProcessKeyboard(RIGHT, deltaTime);
+			camera.ProcessKeyboard(RIGHT, dt);
 	}
 
 	GLint heightValue = chunkHandler->getHeightValue(camera.Position.x, camera.Position.z);
@@ -349,6 +491,7 @@ void Game::treatStateChangingKeys(float dt)
 		if (gs == WELCOME)
 		{
 			gs = ACTIVE;
+			std::cout << "Switched to ACTIVE game state" << std::endl;
 		}
 	}
 
@@ -362,6 +505,7 @@ void Game::treatStateChangingKeys(float dt)
 			cursorFree = true;
 			lastGameState = gs;
 			gs = MENU;
+			std::cout << "Switched to MENU game state" << std::endl;
 		}
 		else
 		{
@@ -386,6 +530,7 @@ void Game::treatStateChangingKeys(float dt)
 		{
 			lastGameState = gs;
 			gs = INFORMATION;
+			std::cout << "Switched to INFORMATION game state" << std::endl;
 		}
 		else
 		{
@@ -542,6 +687,14 @@ void Game::pgsFreeFly(GLfloat dt)
 
 void Game::render()
 {
+	// Setup some OpenGL options
+	glEnable(GL_DEPTH_TEST);
+	glDepthFunc(GL_LESS); // Set to always pass the depth test (same effect as glDisable(GL_DEPTH_TEST))
+
+	// Clear the colorbuffer
+	glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
 	// Draw objects
 	view = camera.GetViewMatrix();
 	projection = glm::perspective(camera.Zoom, (float)screenHeight / (float)screenHeight, 0.1f, 750.0f);
@@ -549,12 +702,12 @@ void Game::render()
 	shaderGEO.Use();
 	glUniformMatrix4fv(glGetUniformLocation(shaderGEO.Program, "view"), 1, GL_FALSE, glm::value_ptr(view));
 	glUniformMatrix4fv(glGetUniformLocation(shaderGEO.Program, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
-	glUniform1f(glGetUniformLocation(shaderGEO.Program, "ambStr"), strength);
+	glUniform1f(glGetUniformLocation(shaderGEO.Program, "ambStr"), 1);
 
 	shaderLAMP.Use();
 	glUniformMatrix4fv(glGetUniformLocation(shaderLAMP.Program, "view"), 1, GL_FALSE, glm::value_ptr(view));
 	glUniformMatrix4fv(glGetUniformLocation(shaderLAMP.Program, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
-	glUniform1f(glGetUniformLocation(shaderLAMP.Program, "ambStr"), strength);
+	glUniform1f(glGetUniformLocation(shaderLAMP.Program, "ambStr"), 1);
 
 	if (gs == ACTIVE)
 	{
@@ -656,7 +809,7 @@ void Game::render()
 	}
 
 	// Swap the buffers
-	glfwSwapBuffers(window);
+	glfwSwapBuffers(windowptr);
 }
 
 void Game::geometryRender(Shader &shader, GLint textureID, glm::vec3 color, GLint blockTypeRequest)
@@ -673,11 +826,13 @@ void Game::geometryRender(Shader &shader, GLint textureID, glm::vec3 color, GLin
 	glBindTexture(GL_TEXTURE_2D, 0);
 	glBindVertexArray(lightVAO);
 
+	GLfloat timeValue = glfwGetTime();
+
 	GLfloat sunX = sin(timeValue / 10);
 	GLfloat sunY = cos(timeValue / 10);
 
-	sunX = map(sunX, 0, 1, 0, 500);
-	sunY = map(sunY, 0, 1, 0, 500);
+	sunX = bmath::map(sunX, 0, 1, 0, 500);
+	sunY = bmath::map(sunY, 0, 1, 0, 500);
 
 	lightPos = glm::vec3(sunX + playerPos.x, sunY + playerPos.y, playerPos.z);
 
@@ -748,5 +903,5 @@ void lbLoad_leftClick()
 
 void lbExit_leftClick()
 {
-	glfwSetWindowShouldClose(window, GL_TRUE);
+	//glfwSetWindowShouldClose(window, GL_TRUE);
 }

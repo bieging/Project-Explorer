@@ -9,23 +9,7 @@
 
 #include "Chunk.h"
 #include "PerlinNoise.h"
-
-struct Vector2
-{
-	int x;
-	int y;
-
-	Vector2(int x, int y) { this->x = x; this->y = y; }
-};
-
-struct Vector2Compare
-{
-	bool operator() (const Vector2& lhs, const Vector2& rhs) const
-	{
-		return lhs.x < rhs.x && lhs.y < rhs.y;
-	}
-};
-
+#include "BMath.h"
 
 class ChunkHandler
 {
@@ -68,7 +52,7 @@ private:
 	int initialChunkSide = 5;
 
 	// This is how many chunk will be visible by the player
-	int visibleChunkSide = 7;
+	int visibleChunkSide = 5;
 
 	void generateChunk(int chunkX, int chunkZ);
 	void generateInitialChunks(int chunkX, int chunkZ);

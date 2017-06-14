@@ -7,7 +7,7 @@ Create issues with this sections
 	Game State 1
 		Put limitations on keys callback function  based on current game state
 
-Sequence
+Major
 	ok - Finish Selfmade Interface 1
 	ok - Chunk and Chunk Loader
 	Sun ( Day and Night cycle with Diffuse lighting )
@@ -16,6 +16,8 @@ Sequence
 	Ray-Picking ( Object interaction )
 	Instancing
 	Tinker more with terrain generation ( sand, water, trees and vegetation, octaves )
+
+Pending
 
 Bugs
 	ChunkHandler's updateVisibleChunks is not updating correctly visible chunks on negative chunks. Probably an issue with negatives and visibleChunkSide ( Which is always possible )
@@ -55,6 +57,7 @@ Desceased LOD for higher distances
 
 Code Improvement 1.3
 	InputHandler class
+	Map of fonts ( Font name would be the key and the font object the value )
 
 Code Improvement 1.4
 
