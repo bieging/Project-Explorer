@@ -14,10 +14,12 @@ Major
 	Save worldmap to file
 	Load worldmap from file
 	Ray-Picking ( Object interaction )
-	Instancing
+	opt - View Frustum Culling
+	opt - Instancing
 	Tinker more with terrain generation ( sand, water, trees and vegetation, octaves )
 
 Pending
+	Exit button not working properly as I must get the window by parameter, but I don't know how to do it without creating a lot of functions. Read: https://stackoverflow.com/questions/2298242/callback-functions-in-c
 
 Bugs
 	ChunkHandler's updateVisibleChunks is not updating correctly visible chunks on negative chunks. Probably an issue with negatives and visibleChunkSide ( Which is always possible )
