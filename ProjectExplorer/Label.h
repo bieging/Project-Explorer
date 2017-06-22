@@ -13,6 +13,9 @@
 #define GLEW_STATIC
 #include <c:/opengl/GLEW/glew.h>
 
+// GLFW
+#include <c:/opengl/GLFW/glfw3.h>
+
 // GLM Mathemtics
 #include <c:/opengl/glm/glm.hpp>
 
@@ -26,6 +29,12 @@ enum TextFormatting
 class Label
 {
 private:
+	enum FUNC_TYPE
+	{
+		VOID_VOID = 0,
+		VOID_GLFWWINDOW
+	};
+
 	std::string text;
 
 	GLuint textVAO, textVBO;
@@ -59,6 +68,8 @@ public:
 	void checkCollision(GLint mouseX, GLint mouseY);
 	void setLeftMouseClickFunction(mouseClickFunction clickFunction);
 	void setRightMouseClickFunction(mouseClickFunction clickFunction);
+	
+	// VOID - VOID
 	mouseClickFunction leftMouseClickFunction;
 	mouseClickFunction rightMouseClickFunction;
 };

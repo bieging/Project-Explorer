@@ -43,6 +43,7 @@
 #include "BMath.h"
 #include "ChunkHandler.h"
 #include "Defines.h"
+#include "FrustumC.h"
 
 using namespace irrklang;
 
@@ -52,6 +53,7 @@ using namespace irrklang;
 
 #define GRASS_ID 0
 #define STONE_ID 1
+#define SAND_ID  2
 
 
 // UI
@@ -145,6 +147,9 @@ private:
 	// Chunks Handler
 	ChunkHandler* chunkHandler;
 
+	// Frustum Culling Handler
+	FrustumC* frustumHandler;
+
 	// Shaders
 	Shader shaderGEO;
 	Shader shaderLAMP;
@@ -157,6 +162,8 @@ private:
 	// Texture
 	GLuint stoneTexID;
 	GLuint grassTexID;
+	GLuint sandTexID;
+	GLuint waterTexID;
 
 	// Camera
 	Camera camera;
@@ -166,8 +173,12 @@ private:
 
 	// General
 	float dt;
+
+	const float nearDistance =   0.1f;
+	const float farDistance  = 750.0f;
 	// todo - organize this vars
 	const glm::vec3 stoneColor = glm::vec3(1.0, 1.0, 1.0);
+	const glm::vec3 sandColor = glm::vec3(1.0, 1.0, 1.0);
 	const glm::vec3 grassColor = glm::vec3(0.2, 0.7, 0.2);
 
 	float gravityVelocity = 0.05f;
@@ -176,7 +187,7 @@ private:
 
 	const float playerHeight = 2.2f;
 	const float playerSpeed = 3.0f;
-	const float runSpeedMultiplier = 3.0f;
+	const float runSpeedMultiplier = 10.0f;
 	bool	playerJumpEnable = true;
 	const int	playerJumpTime = 13;
 	int   jumpTimeCounter = playerJumpTime;
@@ -184,6 +195,7 @@ private:
 
 	bool spacePressed = false;
 	bool spaceReleased = false;
+	bool mouseClicked = false;
 	bool mouseFlag = false;
 	bool flyAscend = false;
 	bool flyDescend = false;
@@ -217,6 +229,8 @@ private:
 	Label lbMouseX;
 	Label lbMouseY;
 	Label lbWorldSize;
+	Label lbVisibleChunks;
+	Label lbNearChunks;
 
 	Label lbSave;
 	Label lbLoad;

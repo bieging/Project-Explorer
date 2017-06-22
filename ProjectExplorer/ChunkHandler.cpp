@@ -4,7 +4,7 @@ ChunkHandler::ChunkHandler() {}
 
 ChunkHandler::ChunkHandler(float playerXPos, float playerZPos)
 {
-	numberOfVisibleCubes = chunkSize * chunkSize * visibleChunkSide * visibleChunkSide;
+	numberOfVisibleCubes = chunkSize * chunkSize * nearChunkSide * nearChunkSide;
 
 	translations = new glm::mat4[numberOfVisibleCubes];
 
@@ -57,9 +57,17 @@ ChunkHandler::ChunkHandler(float playerXPos, float playerZPos)
 
 					// Add height value to block
 					chunks.back().blocksHeight[x][z] = mappedValue;
+
 					// Add a random block type value
-					int randNum = randomMin + (rand() % (int)(randomMax - randomMin + 1));
-					chunks.back().blocksType[x][z] = (randNum < 50.0f) ? 0 : 1;
+					if (mappedValue < sandHeight)
+					{
+						chunks.back().blocksType[x][z] = 2;
+					}
+					else
+					{
+						int randNum = randomMin + (rand() % (int)(randomMax - randomMin + 1));
+						chunks.back().blocksType[x][z] = (randNum < 50.0f) ? 0 : 1;
+					}
 				}
 			}
 		}
@@ -68,7 +76,7 @@ ChunkHandler::ChunkHandler(float playerXPos, float playerZPos)
 
 ChunkHandler::ChunkHandler(float playerXPos, float playerZPos, unsigned int seed)
 {
-	numberOfVisibleCubes = chunkSize * chunkSize * visibleChunkSide * visibleChunkSide;
+	numberOfVisibleCubes = chunkSize * chunkSize * nearChunkSide * nearChunkSide;
 
 	translations = new glm::mat4[numberOfVisibleCubes];
 
@@ -125,8 +133,17 @@ ChunkHandler::ChunkHandler(float playerXPos, float playerZPos, unsigned int seed
 					// Add height value to block
 					chunks.back().blocksHeight[x][z] = mappedValue;
 					// Add a random block type value
-					int randNum = randomMin + (rand() % (int)(randomMax - randomMin + 1));
-					chunks.back().blocksType[x][z] = (randNum < 50.0f) ? 0 : 1;
+
+					// Add a random block type value
+					if (mappedValue < sandHeight)
+					{
+						chunks.back().blocksType[x][z] = 2;
+					}
+					else
+					{
+						int randNum = randomMin + (rand() % (int)(randomMax - randomMin + 1));
+						chunks.back().blocksType[x][z] = (randNum < 50.0f) ? 0 : 1;
+					}
 				}
 			}
 		}
@@ -145,7 +162,7 @@ void ChunkHandler::updateVisibleChunks(float playerXPos, float playerZPos)
 	playerLastX = playerXPos;
 	playerLastZ = playerZPos;
 
-	visibleChunks.clear();
+	nearChunks.clear();
 
 	// Player's rounded position
 	int xPos = static_cast<int>(playerXPos);
@@ -157,24 +174,24 @@ void ChunkHandler::updateVisibleChunks(float playerXPos, float playerZPos)
 
 	currentChunkIndex = std::pair<int, int>(chunkXIndex, chunkZIndex);
 
-	int chunkVisibility = (visibleChunkSide - 1) / 2;
+	int chunkVisibility = (nearChunkSide - 1) / 2;
 
-	for (int i = chunkXIndex - chunkVisibility; i < (chunkXIndex + visibleChunkSide) - chunkVisibility; i++)
+	for (int i = chunkXIndex - chunkVisibility; i < (chunkXIndex + nearChunkSide) - chunkVisibility; i++)
 	{
-		for (int j = chunkZIndex - chunkVisibility; j < (chunkZIndex + visibleChunkSide) - chunkVisibility; j++)
+		for (int j = chunkZIndex - chunkVisibility; j < (chunkZIndex + nearChunkSide) - chunkVisibility; j++)
 		{
 			std::map<std::pair<int, int>, int>::iterator mapIt = worldmap.find(std::pair<int, int>(i, j));
 			if (mapIt != worldmap.end())
 			{
 				int chunkIndex = mapIt->second;
-				visibleChunks.push_back(chunkIndex);
+				nearChunks.push_back(chunkIndex);
 			}
 			else
 			{
 				// If chunk is not found, generate a new chunk
  				generateChunk(i, j);
 				int chunkIndex = worldmap.at(std::pair<int, int>(i, j));
-				visibleChunks.push_back(chunkIndex);
+				nearChunks.push_back(chunkIndex);
 			}
 		}
 	}
@@ -233,14 +250,14 @@ int ChunkHandler::getHeightValue(float playerXPos, float playerZPos)
 
 float ChunkHandler::getVisibleChunkSide()
 {
-	return visibleChunkSide;
+	return nearChunkSide;
 }
 
 void ChunkHandler::setVisibleChunkSid(int newVisibleChunkSide)
 {
-	visibleChunkSide = newVisibleChunkSide;
+	nearChunkSide = newVisibleChunkSide;
 
-	numberOfVisibleCubes = chunkSize * chunkSize * visibleChunkSide * visibleChunkSide;
+	numberOfVisibleCubes = chunkSize * chunkSize * nearChunkSide * nearChunkSide;
 
 	//translations = new glm::mat4[numberOfVisibleCubes];
 
@@ -275,8 +292,17 @@ void ChunkHandler::generateChunk(int chunkXIndex, int chunkZIndex)
 			// Add height value to block
 			chunks.back().blocksHeight[x][z] = mappedValue;
 			// Add a random block type value
-			int randNum = randomMin + (rand() % (int)(randomMax - randomMin + 1));
-			chunks.back().blocksType[x][z] = (randNum < 50.0f) ? 0 : 1;
+
+			// Add a random block type value
+			if (mappedValue < sandHeight)
+			{
+				chunks.back().blocksType[x][z] = 2;
+			}
+			else
+			{
+				int randNum = randomMin + (rand() % (int)(randomMax - randomMin + 1));
+				chunks.back().blocksType[x][z] = (randNum < 50.0f) ? 0 : 1;
+			}
 		}
 	}
 }
@@ -299,9 +325,9 @@ void ChunkHandler::populateTranslationsArray()
 
 	Chunk * chunkPtr;
 
-	for (int i = 0; i < visibleChunks.size(); i++)
+	for (int i = 0; i < nearChunks.size(); i++)
 	{
-		chunkPtr = &chunks.at(visibleChunks.at(i));
+		chunkPtr = &chunks.at(nearChunks.at(i));
 
 		for (int x = 0; x < chunkSize; x++)
 		{

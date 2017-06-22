@@ -1,7 +1,5 @@
 #include "Game.h"
 
-
-
 Game::Game(GLuint width, GLuint height) : gs(WELCOME), keys(), actions(), screenWidth(width), screenHeight(height)
 {
 }
@@ -39,6 +37,8 @@ void Game::init(GLFWwindow* windowptr)
 	// Initializes all vertices, VAOs and VBOs related to blocks
 	initRenderData();
 
+	frustumHandler = new FrustumC();
+
 	// Initialize player's Y position
 	GLint heightValue = (chunkHandler->getHeightValue(playerPos.x, playerPos.z));
 	playerPos.y = heightValue;
@@ -47,6 +47,8 @@ void Game::init(GLFWwindow* windowptr)
 	// Load textures
 	stoneTexID = loadTexture("Textures/rockWire.png");
 	grassTexID = loadTexture("Textures/grassRealWire.png");
+	sandTexID = loadTexture("Textures/sandWire.png");
+	waterTexID = loadTexture("Textures/water.png");
 }
 
 void Game::initRenderData()
@@ -172,6 +174,8 @@ void Game::initializeUI()
 	lbMouseX = Label("Mouse X: " + std::to_string(lastX), 25.0f, 450.0f, 0.3f, fontArial->getCharacterSet(PLAIN));
 	lbMouseY = Label("Mouse Y: " + std::to_string(lastY), 25.0f, 430.0f, 0.3f, fontArial->getCharacterSet(PLAIN));
 	lbWorldSize = Label("World Size: " + std::to_string(chunkHandler->chunks.size()), 25.0f, 410.0f, 0.3f, fontArial->getCharacterSet(PLAIN));
+	lbVisibleChunks = Label("Visible Chunks: " + std::to_string(chunkHandler->visibleChunks.size()), 25.0f, 390.0f, 0.3f, fontArial->getCharacterSet(PLAIN));
+	lbNearChunks = Label("Near Chunks: " + std::to_string(chunkHandler->nearChunks.size()), 25.0f, 370.0f, 0.3f, fontArial->getCharacterSet(PLAIN));
 
 	// Add Information Labels to their Label vector
 	informationLabels.push_back(&lbFPS);
@@ -182,6 +186,8 @@ void Game::initializeUI()
 	informationLabels.push_back(&lbMouseX);
 	informationLabels.push_back(&lbMouseY);
 	informationLabels.push_back(&lbWorldSize);
+	informationLabels.push_back(&lbVisibleChunks);
+	informationLabels.push_back(&lbNearChunks);
 
 	// Create Menu Labels
 	lbSave = Label("Save", 350.0f, 570.0f, 0.5f, fontArial->getCharacterSet(currentCharacterSet));
@@ -358,6 +364,17 @@ void Game::treatMouseMovement(GLFWwindow* window, double xpos, double ypos)
 
 void Game::treatMouseButton(GLFWwindow* window, int button, int action, int mods)
 {
+	if (gs == ACTIVE)
+	{
+		if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
+		{
+			mouseClicked = !mouseClicked;
+		}
+		if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE)
+		{
+			mouseClicked = !mouseClicked;
+		}
+	}
 	if (gs == MENU)
 	{
 		if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
@@ -447,7 +464,7 @@ void Game::treatPlayerMovementKeys(float dt)
 		lbPlayerZ.setText("Player Z: " + std::to_string(camera.Position.z));
 
 		// Update world size label in case new chunks were added
-		lbWorldSize.setText("World Size: " + std::to_string(chunkHandler->chunks.size()));
+		//lbWorldSize.setText("World Size: " + std::to_string(chunkHandler->chunks.size()));
 	}
 	else
 	{
@@ -479,6 +496,17 @@ void Game::treatGameControlKeys(float dt)
 				break;
 			}
 		}
+	}
+	if (keys[GLFW_KEY_KP_ADD] && actions[GLFW_KEY_T] == INPUT_PRESSED)
+	{
+		chunkHandler->nearChunkSide += 2;
+		chunkHandler->updateVisibleChunks(playerPos.x, playerPos.z);
+	}
+
+	if (keys[GLFW_KEY_KP_SUBTRACT] && actions[GLFW_KEY_T] == INPUT_PRESSED)
+	{
+		chunkHandler->nearChunkSide -= 2;
+		chunkHandler->updateVisibleChunks(playerPos.x, playerPos.z);
 	}
 }
 
@@ -691,13 +719,67 @@ void Game::render()
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LESS); // Set to always pass the depth test (same effect as glDisable(GL_DEPTH_TEST))
 
+	// Mouse Picking
+	if (mouseClicked)
+	{
+		// Clear the colorbuffer
+		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		unsigned char result[4];
+
+		glReadPixels(400, 400, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, &result);
+
+		std::cout << std::to_string(result[0]) << std::endl;
+	}
+
 	// Clear the colorbuffer
 	glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	// Draw objects
 	view = camera.GetViewMatrix();
-	projection = glm::perspective(camera.Zoom, (float)screenHeight / (float)screenHeight, 0.1f, 750.0f);
+	GLfloat projectionRatio = (float)screenHeight / (float)screenHeight;
+	projection = glm::perspective(camera.Zoom, projectionRatio, nearDistance, farDistance);
+
+	frustumHandler->setCamInternals(camera.Zoom, projectionRatio, nearDistance, farDistance, camera.Zoom);
+	
+	// Calculates the direction ray
+	//glm::vec3 viewDirection = camera.Position - (camera.Position + camera.Front);
+	//GLfloat nearHeight = 2 * std::tan(camera.Zoom / 2) * nearDistance;
+	//GLfloat farHeight  = 2 * std::tan(camera.Zoom / 2) *  farDistance;
+
+	//GLfloat nearWidth = nearHeight * projectionRatio;
+	//GLfloat farWidth  = farHeight  * projectionRatio;
+
+
+
+	//// fc - Point that crosses the far plane in the direction ray
+	//glm::vec3 fc = camera.Position + (viewDirection * farDistance);
+	//glm::vec3 ftl = fc + (camera.Up * (farHeight / 2)) - (camera.Right * (farWidth / 2));
+	//glm::vec3 fbl = ftl - glm::vec3(0.0f, 0.0f, farHeight);
+	//glm::vec3 ftr = fc + (camera.Up * (farHeight / 2)) + (camera.Right * (farWidth / 2));
+	//glm::vec3 fbr = ftr - glm::vec3(0.0f, 0.0f, farHeight);
+
+	//glm::vec3 fbl = fc - (camera.Up * (farHeight / 2)) - (camera.Right * (farWidth / 2));
+	//glm::vec3 fbr = fc - (camera.Up * (farHeight / 2)) + (camera.Right * (farWidth / 2));
+
+	//glm::vec3 cbl = camera.Position + glm::vec3()
+	//glm::vec3 cbr
+
+	// Calculates the right plane
+	//glm::vec3 v = ftl - fbl;
+
+	//// fc - Point that crosses the far plane in the direction ray
+	//glm::vec3 nc = camera.Position + (viewDirection * nearDistance);
+	//glm::vec3 ntl = nc + (camera.Up * (nearHeight / 2)) - (camera.Right * (nearWidth / 2));
+	//glm::vec3 ntr = nc + (camera.Up * (nearHeight / 2)) + (camera.Right * (nearWidth / 2));
+	//glm::vec3 nbl = nc - (camera.Up * (nearHeight / 2)) - (camera.Right * (nearWidth / 2));
+	//glm::vec3 nbr = nc - (camera.Up * (nearHeight / 2)) + (camera.Right * (nearWidth / 2));
+
+	//glm::vec3 a = (nc + camera.Right * (nearWidth / 2)) - camera.Position;
+	//glm::normalize(a);
+	//glm::vec3 rightNormal = camera.Up * a;
 
 	shaderGEO.Use();
 	glUniformMatrix4fv(glGetUniformLocation(shaderGEO.Program, "view"), 1, GL_FALSE, glm::value_ptr(view));
@@ -716,6 +798,7 @@ void Game::render()
 
 		geometryRender(shaderGEO, grassTexID, grassColor, GRASS_ID);
 		geometryRender(shaderGEO, stoneTexID, stoneColor, STONE_ID);
+		geometryRender(shaderGEO, sandTexID, sandColor, SAND_ID);
 
 		//glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
@@ -740,6 +823,7 @@ void Game::render()
 	{
 		geometryRender(shaderGEO, grassTexID, grassColor, GRASS_ID);
 		geometryRender(shaderGEO, stoneTexID, stoneColor, STONE_ID);
+		geometryRender(shaderGEO, sandTexID, sandColor, SAND_ID);
 
 		// Set OpenGL options
 		glEnable(GL_CULL_FACE);
@@ -761,6 +845,7 @@ void Game::render()
 	{
 		geometryRender(shaderGEO, grassTexID, grassColor, GRASS_ID);
 		geometryRender(shaderGEO, stoneTexID, stoneColor, STONE_ID);
+		geometryRender(shaderGEO, sandTexID, sandColor, SAND_ID);
 
 		// Set OpenGL options
 		glEnable(GL_CULL_FACE);
@@ -782,6 +867,7 @@ void Game::render()
 	{
 		geometryRender(shaderGEO, grassTexID, grassColor, GRASS_ID);
 		geometryRender(shaderGEO, stoneTexID, stoneColor, STONE_ID);
+		geometryRender(shaderGEO, sandTexID, sandColor, SAND_ID);
 
 		// Set OpenGL options
 		glEnable(GL_CULL_FACE);
@@ -821,6 +907,11 @@ void Game::geometryRender(Shader &shader, GLint textureID, glm::vec3 color, GLin
 
 	Chunk * chunkPtr;
 
+	GLfloat projectionRatio = (float)screenHeight / (float)screenHeight;
+
+	//float distance = bmath::distPT2LN(camera.Position, normDirection, lightPos);
+	//lbWorldSize.setText("Distance Player to Sun: " + std::to_string(camera.Yaw));
+
 	// Draw sun
 	shaderLAMP.Use();
 	glBindTexture(GL_TEXTURE_2D, 0);
@@ -838,6 +929,7 @@ void Game::geometryRender(Shader &shader, GLint textureID, glm::vec3 color, GLin
 
 	glm::mat4 model = glm::mat4();
 	model = glm::translate(model, lightPos);
+	//model = glm::translate(model, ftl);
 	model = glm::scale(model, glm::vec3(sunSize));
 	glUniformMatrix4fv(glGetUniformLocation(shaderLAMP.Program, "model"), 1, GL_FALSE, glm::value_ptr(model));
 	glDrawArrays(GL_TRIANGLES, 0, 36);
@@ -858,34 +950,63 @@ void Game::geometryRender(Shader &shader, GLint textureID, glm::vec3 color, GLin
 
 	//glDrawArraysInstanced(GL_TRIANGLES, 0, 36, chunkHandler.numberOfVisibleCubes);
 	//glBindVertexArray(0);
+		
+	frustumHandler->setCamDef(camera.Position, (camera.Position + camera.Front), camera.Up, camera.Right);
 
-	for (int i = 0; i < chunkHandler->visibleChunks.size(); i++)
+	int visibleChunks = 0;
+
+	for (int i = 0; i < chunkHandler->nearChunks.size(); i++)
 	{
-		chunkPtr = &chunkHandler->chunks.at(chunkHandler->visibleChunks.at(i));
+		chunkPtr = &chunkHandler->chunks.at(chunkHandler->nearChunks.at(i));
 
-		for (int x = 0; x < chunkSize; x++)
+		if (frustumHandler->pointInFrustum(glm::vec3(chunkPtr->x, camera.Position.y, chunkPtr->z)))
 		{
-			for (int z = 0; z < chunkSize; z++)
+			visibleChunks++;
+
+			for (int x = 0; x < chunkSize; x++)
 			{
-				int randNum = randomMin + (rand() % (int)(randomMax - randomMin + 1));
-
-				blockX = chunkPtr->x + x;
-				blockY = chunkPtr->blocksHeight[x][z];
-				blockZ = chunkPtr->z + z;
-				blockType = chunkPtr->blocksType[x][z];
-
-				if (blockType == blockTypeRequest)
+				for (int z = 0; z < chunkSize; z++)
 				{
-					glm::mat4 model;
-					//model = glm::rotate(model, (float)glfwGetTime() * glm::radians(50.0f), glm::vec3(0.5f, 1.0f, 0.0f));
-					model = glm::translate(model, glm::vec3(blockX + 0.5f, blockY, blockZ + 0.5f));
-					//model = glm::scale(model, glm::vec3(0.5f, 0.5f, 0.5f));
-					glUniformMatrix4fv(glGetUniformLocation(shader.Program, "model"), 1, GL_FALSE, glm::value_ptr(model));
-					glDrawArrays(GL_TRIANGLES, 0, 36);
+					int randNum = randomMin + (rand() % (int)(randomMax - randomMin + 1));
+
+					blockX = chunkPtr->x + x;
+					blockY = chunkPtr->blocksHeight[x][z];
+					blockZ = chunkPtr->z + z;
+					blockType = chunkPtr->blocksType[x][z];
+
+					if (blockType == blockTypeRequest)
+					{
+						glm::mat4 model;
+						//model = glm::rotate(model, (float)glfwGetTime() * glm::radians(50.0f), glm::vec3(0.5f, 1.0f, 0.0f));
+						model = glm::translate(model, glm::vec3(blockX + 0.5f, blockY, blockZ + 0.5f));
+						//model = glm::scale(model, glm::vec3(0.5f, 0.5f, 0.5f));
+						glUniformMatrix4fv(glGetUniformLocation(shader.Program, "model"), 1, GL_FALSE, glm::value_ptr(model));
+						glDrawArrays(GL_TRIANGLES, 0, 36);
+					}
+
+					// Frustum culling test
+					//glm::vec3 blockPos = glm::vec3(blockX, blockY, blockZ);
+
+					//if (bmath::distPT2LN(camera.Position, normDirection, blockPos) < maxRadious)
+					//{
+					//	if (blockType == blockTypeRequest)
+					//	{
+					//		glm::mat4 model;
+					//		//model = glm::rotate(model, (float)glfwGetTime() * glm::radians(50.0f), glm::vec3(0.5f, 1.0f, 0.0f));
+					//		model = glm::translate(model, glm::vec3(blockX + 0.5f, blockY, blockZ + 0.5f));
+					//		//model = glm::scale(model, glm::vec3(0.5f, 0.5f, 0.5f));
+					//		glUniformMatrix4fv(glGetUniformLocation(shader.Program, "model"), 1, GL_FALSE, glm::value_ptr(model));
+					//		glDrawArrays(GL_TRIANGLES, 0, 36);
+					//	}
+					//}
 				}
 			}
 		}
 	}
+
+	lbVisibleChunks.setText("Visible Chunks: " + std::to_string(visibleChunks));
+
+	visibleChunks = 0;
 
 	glBindVertexArray(0);
 }

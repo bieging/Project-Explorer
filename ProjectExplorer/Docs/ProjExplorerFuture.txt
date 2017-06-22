@@ -33,6 +33,9 @@ Shader class
 Render class
 Texture class?
 
+Frustum Culling
+	Get rid of Vec3 class. Use only glm
+
 Seed Input 1.0
 	Accept all kind of characters
 	Turn the input string into a char array and sum the value of all char values

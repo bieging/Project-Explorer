@@ -62,6 +62,7 @@
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\..\..\..\..\..\..\opengl\OpenGLD32.props" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
@@ -150,12 +151,15 @@
     <ClCompile Include="BMath.cpp" />
     <ClCompile Include="ChunkHandler.cpp" />
     <ClCompile Include="Font.cpp" />
+    <ClCompile Include="FrustumC.cpp" />
     <ClCompile Include="Game.cpp" />
     <ClCompile Include="Label.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="PerlinNoise.cpp" />
+    <ClCompile Include="Plane.cpp" />
     <ClCompile Include="UI.cpp" />
     <ClCompile Include="UIElement.cpp" />
+    <ClCompile Include="Vec3.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BMath.h" />
@@ -165,13 +169,16 @@
     <ClInclude Include="ChunkHandler.h" />
     <ClInclude Include="Defines.h" />
     <ClInclude Include="Font.h" />
+    <ClInclude Include="FrustumC.h" />
     <ClInclude Include="Game.h" />
     <ClInclude Include="Label.h" />
     <ClInclude Include="Main.h" />
     <ClInclude Include="PerlinNoise.h" />
+    <ClInclude Include="Plane.h" />
     <ClInclude Include="Shader.h" />
     <ClInclude Include="UI.h" />
     <ClInclude Include="UIElement.h" />
+    <ClInclude Include="Vec3.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Docs\Issues Annotations.md" />

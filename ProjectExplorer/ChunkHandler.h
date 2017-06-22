@@ -15,10 +15,17 @@ class ChunkHandler
 {
 public:
 	std::vector<Chunk> chunks;
+	std::vector<int> nearChunks;
 	std::vector<int> visibleChunks;
 
 	GLint numberOfVisibleCubes = 0;
 	glm::mat4 * translations;
+
+	// From this height down, sand will be generated
+	int sandHeight = 90;
+
+	// This is how many chunk will be visible by the player
+	int nearChunkSide = 41;
 
 	ChunkHandler();
 	ChunkHandler(float playerXPos, float playerZPos);
@@ -49,10 +56,7 @@ private:
 	int playerLastZ = 0;
 
 	// This is how many chunk will be generated around the player
-	int initialChunkSide = 5;
-
-	// This is how many chunk will be visible by the player
-	int visibleChunkSide = 5;
+	int initialChunkSide = 65;
 
 	void generateChunk(int chunkX, int chunkZ);
 	void generateInitialChunks(int chunkX, int chunkZ);
