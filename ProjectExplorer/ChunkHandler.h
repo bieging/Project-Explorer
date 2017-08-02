@@ -25,7 +25,7 @@ public:
 	int sandHeight = 90;
 
 	// This is how many chunk will be visible by the player
-	int nearChunkSide = 41;
+	int nearChunkSide = 25;
 
 	ChunkHandler();
 	ChunkHandler(float playerXPos, float playerZPos);

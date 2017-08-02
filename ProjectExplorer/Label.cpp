@@ -1,5 +1,8 @@
 #include "Label.h"
 
+GLfloat Label::windowHeight;
+GLfloat Label::windowWidth;
+
 Label::Label() {}
 
 Label::Label(std::string text, GLfloat xPos, GLfloat yPos, GLfloat scale, std::map<GLchar, Character> * charactersSet)
@@ -195,4 +198,54 @@ void Label::setLeftMouseClickFunction(mouseClickFunction clickFunction)
 void Label::setRightMouseClickFunction(mouseClickFunction clickFunction)
 {
 	this->rightMouseClickFunction = clickFunction;
+}
+
+void Label::setHorizontalPosition(GLint newXPos)
+{
+	switch (newXPos)
+	{
+		case TXT_POS_TOP:
+			std::cout << "Label Error: Invalid Horizontal Position\n";
+			break;
+		case TXT_POS_CENTER:
+			xPos = (windowWidth / 2) - (width / 2);
+			break;
+		case TXT_POS_LEFT:
+			xPos = 0;
+			break;
+		case TXT_POS_RIGHT:
+			xPos = windowWidth - width;
+			break;
+		case TXT_POS_BOTTOM:
+			std::cout << "Label Error: Invalid Horizontal Position\n";
+			break;
+		default:
+			this->xPos = newXPos;
+			break;
+	}
+}
+
+void Label::setVerticalPosition(GLint newYPos)
+{
+	switch (newYPos)
+	{
+	case TXT_POS_TOP:
+		yPos = windowHeight;
+		break;
+	case TXT_POS_CENTER:
+		yPos = (windowHeight / 2) - (height / 2);
+		break;
+	case TXT_POS_LEFT:
+		std::cout << "Label Error: Invalid Vertical Position\n";
+		break;
+	case TXT_POS_RIGHT:
+		std::cout << "Label Error: Invalid Vertical Position\n";
+		break;
+	case TXT_POS_BOTTOM:
+		yPos = 0;
+		break;
+	default:
+		this->yPos = newYPos;
+		break;
+	}
 }

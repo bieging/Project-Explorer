@@ -8,6 +8,38 @@ Create issues with this sections
 		Put limitations on keys callback function  based on current game state
 
 Major
+	Organize what will I do later
+		Improve Interface
+		Mouse Picking
+			Color
+			In-house Ray Casting
+			Enhanced Ray Casting
+		Lighting correction
+		Local lighting
+		Shadows
+
+		More Optimizations
+			Instancing
+
+		Better Terrain Generation
+
+		Project Organized in a much better way ( Moar classes! )
+			Resource Manager
+			Shader class
+			Render class
+			Texture class?
+
+		Better Window management
+		Better menus and more menus, options and stuff
+
+		Hide confidential code inside DLLs and LIBs
+
+		Threading
+
+		Face Culling
+		
+		Memory usage is relatively high now. Maybe I shouldn't save places I already visited. Maybe work on this after I have the blocks interaction working properly. Maybe after Octtrees and that stuff actually
+
 	ok - Finish Selfmade Interface 1
 	ok - Chunk and Chunk Loader
 	Sun ( Day and Night cycle with Diffuse lighting )
@@ -30,10 +62,7 @@ Bugs
 
 Later
 
-Resource Manager
-Shader class
-Render class
-Texture class?
+Chunk Size input
 
 Frustum Culling
 	Get rid of Vec3 class. Use only glm
@@ -48,6 +77,12 @@ Seed Input 1.1
 Increase player camera position as the blocks seem very big now
 
 Quad or Octtrees for the future
+	Learn how trees work
+	Must study them a lot
+	Use trees from Boost / STL
+	Make my own trees
+	Research focused on quad and octtrees
+
 Desceased LOD for higher distances
 	Create my own LODHandler
 		If block is located at a certain distance, render it as a cube 2 times its size
@@ -131,7 +166,7 @@ Save and Load 2
 	Then, when I create the inventory screen, it'll become a ms = INVENTORY
 	For a crafting table, ms = CRAFTING_TABLE_WOOD, ms = CRAFTING_TABLE_STONE, just to get the idea
 
-Interface 1.5
+Interface Engine 1.5
 	Create options label in the menu context
 
 Interface Engine 2.1

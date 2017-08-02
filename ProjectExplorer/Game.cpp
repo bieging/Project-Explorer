@@ -12,7 +12,7 @@ Game::~Game()
 void Game::init(GLFWwindow* windowptr)
 {
 	this->windowptr = windowptr;
-
+	
 	camera = Camera(initialPosition);
 	playerPos = initialPosition;
 
@@ -159,6 +159,9 @@ void Game::initializeUI()
 	std::cout << "Initializing UI, please wait" << std::endl;
 	auto start = std::chrono::high_resolution_clock::now();
 
+	Label::windowWidth = screenWidth;
+	Label::windowHeight = screenHeight;
+
 	// Create Welcome Label
 	lbWelcome = Label("Welcome to Project Explorer", 100.0f, 300.0f, 1.0f, fontArial->getCharacterSet(PLAIN));
 
@@ -177,6 +180,9 @@ void Game::initializeUI()
 	lbVisibleChunks = Label("Visible Chunks: " + std::to_string(chunkHandler->visibleChunks.size()), 25.0f, 390.0f, 0.3f, fontArial->getCharacterSet(PLAIN));
 	lbNearChunks = Label("Near Chunks: " + std::to_string(chunkHandler->nearChunks.size()), 25.0f, 370.0f, 0.3f, fontArial->getCharacterSet(PLAIN));
 
+	lbNearChunks.setHorizontalPosition(TXT_POS_RIGHT);
+	lbNearChunks.setVerticalPosition(TXT_POS_TOP);
+
 	// Add Information Labels to their Label vector
 	informationLabels.push_back(&lbFPS);
 	informationLabels.push_back(&lbPlayerX);
@@ -188,7 +194,7 @@ void Game::initializeUI()
 	informationLabels.push_back(&lbWorldSize);
 	informationLabels.push_back(&lbVisibleChunks);
 	informationLabels.push_back(&lbNearChunks);
-
+	
 	// Create Menu Labels
 	lbSave = Label("Save", 350.0f, 570.0f, 0.5f, fontArial->getCharacterSet(currentCharacterSet));
 	lbLoad = Label("Load", 350.0f, 510.0f, 0.5f, fontArial->getCharacterSet(currentCharacterSet));

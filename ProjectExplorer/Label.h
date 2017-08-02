@@ -26,6 +26,15 @@ enum TextFormatting
 	ITALIC
 };
 
+enum TextPosition
+{
+	TXT_POS_TOP = -5,
+	TXT_POS_CENTER = -4,
+	TXT_POS_LEFT = -3,
+	TXT_POS_RIGHT = -2,
+	TXT_POS_BOTTOM = -1
+};
+
 class Label
 {
 private:
@@ -54,6 +63,8 @@ private:
 	typedef void(*mouseClickFunction)(void);
 public:
 	bool colliding;
+
+	static GLfloat windowWidth, windowHeight;
 	
 	Label();
 	Label(std::string text, GLfloat xPos, GLfloat yPos, GLfloat scale, std::map<GLchar, Character> * charactersSet);
@@ -68,6 +79,9 @@ public:
 	void checkCollision(GLint mouseX, GLint mouseY);
 	void setLeftMouseClickFunction(mouseClickFunction clickFunction);
 	void setRightMouseClickFunction(mouseClickFunction clickFunction);
+
+	void setHorizontalPosition(GLint newXPos);
+	void setVerticalPosition(GLint newYPos);
 	
 	// VOID - VOID
 	mouseClickFunction leftMouseClickFunction;

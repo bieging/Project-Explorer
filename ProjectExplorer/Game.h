@@ -187,7 +187,7 @@ private:
 
 	const float playerHeight = 2.2f;
 	const float playerSpeed = 3.0f;
-	const float runSpeedMultiplier = 10.0f;
+	const float runSpeedMultiplier = 4.0f;
 	bool	playerJumpEnable = true;
 	const int	playerJumpTime = 13;
 	int   jumpTimeCounter = playerJumpTime;
