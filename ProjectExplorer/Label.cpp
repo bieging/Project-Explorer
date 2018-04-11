@@ -192,12 +192,24 @@ void Label::checkCollision(GLint mouseX, GLint mouseY)
 
 void Label::setLeftMouseClickFunction(mouseClickFunction clickFunction)
 {
-	this->leftMouseClickFunction = clickFunction;
+	leftMouseClickFunction = clickFunction;
 }
 
 void Label::setRightMouseClickFunction(mouseClickFunction clickFunction)
 {
-	this->rightMouseClickFunction = clickFunction;
+	rightMouseClickFunction = clickFunction;
+}
+
+void Label::mouseClick(Game* game, int button)
+{
+	if (button == 0)
+	{
+		leftMouseClickFunction(game);
+	}
+	else if (button == 1)
+	{
+		rightMouseClickFunction(game);
+	}
 }
 
 void Label::setHorizontalPosition(GLint newXPos)

@@ -35,6 +35,8 @@ enum TextPosition
 	TXT_POS_BOTTOM = -1
 };
 
+class Game;
+
 class Label
 {
 private:
@@ -60,7 +62,7 @@ private:
 
 	void calculateDimension();
 
-	typedef void(*mouseClickFunction)(void);
+	typedef void (*mouseClickFunction)(Game*);
 public:
 	bool colliding;
 
@@ -82,10 +84,12 @@ public:
 
 	void setHorizontalPosition(GLint newXPos);
 	void setVerticalPosition(GLint newYPos);
-	
+
 	// VOID - VOID
 	mouseClickFunction leftMouseClickFunction;
 	mouseClickFunction rightMouseClickFunction;
+
+	void mouseClick(Game* game, int button);
 };
 
 #endif // LABEL_H

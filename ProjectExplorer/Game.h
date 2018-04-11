@@ -57,9 +57,9 @@ using namespace irrklang;
 
 
 // UI
-void lbSave_leftClick();
-void lbLoad_leftClick();
-void lbExit_leftClick();
+void lbSave_leftClick(Game* game);
+void lbLoad_leftClick(Game* game);
+void lbExit_leftClick(Game* game);
 
 
 // Texture
@@ -114,6 +114,8 @@ public:
 	glm::mat4 view;
 	glm::mat4 projection;
 
+	GLFWwindow* windowptr;
+
 	Game(GLuint width, GLuint height);
 	~Game();
 
@@ -136,8 +138,6 @@ public:
 	// Rendering
 	void render();
 private:
-	GLFWwindow* windowptr;
-	
 	// Sound
 	ISoundEngine* SoundEngine = createIrrKlangDevice();
 
@@ -262,4 +262,4 @@ private:
 	void geometryRender(Shader &shader, GLint textureID, glm::vec3 color, GLint blockTypeRequest);
 };
 
-#endif
+#endif // GAME_H

@@ -201,9 +201,9 @@ void Game::initializeUI()
 	lbExit = Label("Exit", 350.0f, 450.0f, 0.5f, fontArial->getCharacterSet(currentCharacterSet));
 
 	// Set function for each button
-	lbSave.setLeftMouseClickFunction(lbSave_leftClick);
-	lbLoad.setLeftMouseClickFunction(lbLoad_leftClick);
-	lbExit.setLeftMouseClickFunction(lbExit_leftClick);
+	lbSave.setLeftMouseClickFunction(&lbSave_leftClick);
+	lbLoad.setLeftMouseClickFunction(&lbLoad_leftClick);
+	lbExit.setLeftMouseClickFunction(&lbExit_leftClick);
 
 	// Add Menu Labels to their Label vector
 	menuLabels.push_back(&lbSave);
@@ -392,7 +392,7 @@ void Game::treatMouseButton(GLFWwindow* window, int button, int action, int mods
 			{
 				if (menuLabels.at(i)->colliding)
 				{
-					menuLabels.at(i)->leftMouseClickFunction();
+					menuLabels.at(i)->mouseClick(this, 0);
 				}
 			}
 		}
@@ -406,7 +406,7 @@ void Game::treatMouseButton(GLFWwindow* window, int button, int action, int mods
 			{
 				if (menuLabels.at(i)->colliding)
 				{
-					menuLabels.at(i)->rightMouseClickFunction();
+					menuLabels.at(i)->mouseClick(this, 1);
 				}
 			}
 		}
@@ -1018,17 +1018,17 @@ void Game::geometryRender(Shader &shader, GLint textureID, glm::vec3 color, GLin
 }
 
 // UI Functions
-void lbSave_leftClick()
+void lbSave_leftClick(Game* game)
 {
 	std::cout << "Saved map" << std::endl;
 }
 
-void lbLoad_leftClick()
+void lbLoad_leftClick(Game* game)
 {
 	std::cout << "Loaded new map" << std::endl;
 }
 
-void lbExit_leftClick()
+void lbExit_leftClick(Game* game)
 {
-	//glfwSetWindowShouldClose(window, GL_TRUE);
+	glfwSetWindowShouldClose(game->windowptr, GL_TRUE);
 }
